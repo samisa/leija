@@ -12,12 +12,18 @@ function createMesh(wingSections) {
     // 2. construct transformations for each section
     let transformation = new THREE.Matrix4();
     var previousDihedral = 0;
+    var previousYDist = 0;
     _.map(wingSections, (section, index) => {
-        let translation = new THREE.Matrix4().makeTranslation(0, section.y, 0);
+        let scale = new THREE.Matrix4().makeScale(section.chord, section.chord, section.chord);
+        scale.applyToVector3Array(foils[index]);
+        let translation = new THREE.Matrix4().makeTranslation(0, section.y - previousYDist, 0);
         let rotation = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler( previousDihedral * Math.PI / 360, 0, 0, 'XYZ' ));
         transformation.multiply(translation).multiply(rotation);
         transformation.applyToVector3Array(foils[index]);
+        let xtranslation = new THREE.Matrix4().makeTranslation(section.offset, 0, 0);
+        xtranslation.applyToVector3Array(foils[index]);
         previousDihedral = section.dihedral;
+        previousYDist = section.y;
     });
 
     let wing = new THREE.Geometry();
