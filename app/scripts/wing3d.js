@@ -43,11 +43,18 @@ function createMesh(wingSections) {
             wing.faces.push(new THREE.Face3(    n + j,              n + j + 1, n + j + foilLength));
             wing.faces.push(new THREE.Face3(n + j + 1, n + j + foilLength + 1, n + j + foilLength));
         }
-//        wing.faces.push(new THREE.Face3(n + foilLength, n, n + 2 * foilLength));
     }
 
-    let material =  new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading,  side: THREE.BackSide } );
-    return new THREE.Mesh( wing, material );
+    let material =  new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading,  side: THREE.DoubleSide } );
+
+    let rightSide = wing;
+    let leftSide = wing.clone();
+    leftSide.applyMatrix(new THREE.Matrix4().makeScale(1,-1, 1));
+    let leftMesh = new THREE.Mesh( leftSide, material );
+    let rightMesh = new THREE.Mesh( rightSide, material );
+    let wingObject = new THREE.Object3D();
+    wingObject.add(rightMesh, leftMesh);
+    return wingObject;
 }
 
 export {
