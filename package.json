@@ -4,17 +4,27 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "electron-prebuilt": "~1.4.1"
+    "electron-prebuilt": "~1.4.1",
+    "react": "^15.3.2",
+    "three-orbit-controls": "~72.0.0"
   },
   "scripts": {
     "start": "electron build/scripts/main.js",
     "debug": "electron --debug-brk=5858 build/scripts/main.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build-dev": "babel app/ -d build/ --source-maps; cp app/scripts/*.html build/scripts/; cp -r app/res build/"
+    "build-dev": "babel app/scripts -d build/scripts --source-maps; cp app/scripts/*.html build/scripts/; cp -r app/res build/"
   },
   "devDependencies": {
+    "babel": "~6.5.2",
+    "babel-cli": "^6.16.0",
     "babel-preset-es2015": "~6.14.0",
-    "babel-register": "~6.14.0"
+    "babel-preset-react": "^6.16.0",
+    "babel-register": "~6.14.0",
+    "electron-breakpoint": "^1.0.3",
+    "electron-inspector": "~0.1.3",
+    "electron-rebuild": "^1.2.1",
+    "react-dom": "^15.3.2",
+    "three": "~0.81.2"
   },
   "author": "",
   "license": "BSD-2-Clause"
