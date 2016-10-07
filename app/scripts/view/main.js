@@ -25,7 +25,8 @@ function init(data) {
     var container = document.getElementById( 'container' );
     container.appendChild(renderer.domElement);
     camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000 );
-    camera.position.z = 5;
+    camera.up.set(0, 0, 1);
+    camera.position.x = -5;
     controls = new OrbitControls(camera, renderer.domElement);
     //controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
     controls.enableDamping = true;
