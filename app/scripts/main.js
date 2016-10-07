@@ -20,13 +20,14 @@ app.on('ready', () => {
 
 
     //for debugging renderer  process
-    mainWindow.webContents.openDevTools();
     mainWindow.webContents.on('did-finish-load', () => {
+        mainWindow.webContents.openDevTools();
         let wing = parser.parse('app/res/matowing.xwimp');
         mainWindow.webContents.on('devtools-opened', () => {
             setTimeout(() => {
-                mainWindow.webContents.send('wingData' , { data: wing});
-            },1000);
+                console.log('sending data');
+                mainWindow.webContents.send('wingData' , { data: wing });
+            }, 500);
         });
     });
 
