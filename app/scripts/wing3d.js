@@ -1,19 +1,20 @@
 import _ from 'lodash';
 import * as THREE from 'three';
 
-function createMesh(wingSections) {
+function createMesh(wing) {
+    let  { foilDefs, sections } = wing;
     // 1. immerse each sections' foilcoordinates to 3d space, and flatten eaxh foil to 3*nfoilpoints dimensional array
     //  let ydist = 0;
-    let foils = wingSections.map((section) => {
+    let foils = sections.map((section) => {
         //        ydist = ydist + section.y;
-        return _.flatten(section.foil.map((point) => { return [point[0], 0, point[1]]; }));
+        return _.flatten(foilDefs[section.foil].map((point) => { return [point[0], 0, point[1]]; }));
     });
 
     // 2. construct transformations for each section
     let transformation = new THREE.Matrix4();
     var previousDihedral = 0;
     var previousYDist = 0;
-    _.map(wingSections, (section, index) => {
+    _.map(sections, (section, index) => {
         let scale = new THREE.Matrix4().makeScale(section.chord, section.chord, section.chord);
         scale.applyToVector3Array(foils[index]);
         let translation = new THREE.Matrix4().makeTranslation(0, section.y - previousYDist, 0);
@@ -26,12 +27,12 @@ function createMesh(wingSections) {
         previousYDist = section.y;
     });
 
-    let wing = new THREE.Geometry();
+    let wingGeometry = new THREE.Geometry();
 
     _.each(foils, (foil) => {
         var x = _;
         _(foil).chunk(3).each((p) => {
-            wing.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
+            wingGeometry.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
         });
     });
 
@@ -40,15 +41,15 @@ function createMesh(wingSections) {
     for (var i = 0; i < foils.length - 1; i++) {
         let n = i * foilLength;
         for (var j = 0; j < foilLength - 1; j++) {
-            wing.faces.push(new THREE.Face3(    n + j,              n + j + 1, n + j + foilLength));
-            wing.faces.push(new THREE.Face3(n + j + 1, n + j + foilLength + 1, n + j + foilLength));
+            wingGeometry.faces.push(new THREE.Face3(    n + j,              n + j + 1, n + j + foilLength));
+            wingGeometry.faces.push(new THREE.Face3(n + j + 1, n + j + foilLength + 1, n + j + foilLength));
         }
     }
 
     let material =  new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading,  side: THREE.DoubleSide } );
 
-    let rightSide = wing;
-    let leftSide = wing.clone();
+    let rightSide = wingGeometry;
+    let leftSide = wingGeometry.clone();
     leftSide.applyMatrix(new THREE.Matrix4().makeScale(1,-1, 1));
     let leftMesh = new THREE.Mesh( leftSide, material );
     let rightMesh = new THREE.Mesh( rightSide, material );

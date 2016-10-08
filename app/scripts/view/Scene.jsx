@@ -47,7 +47,7 @@ const Scene = React.createClass({
     componentWillReceiveProps(newProps) {
         let { wingObject } = newProps;
         if (wingObject) {
-            this.scene.add(wingObject);
+            this.scene.add(wingObject.threeObject);
         }
     },
 

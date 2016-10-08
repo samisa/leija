@@ -26,7 +26,7 @@ app.on('ready', () => {
         mainWindow.webContents.on('devtools-opened', () => {
             setTimeout(() => {
                 console.log('sending data');
-                mainWindow.webContents.send('wingData' , { data: wing });
+                mainWindow.webContents.send('wingData' , wing);
             }, 500);
         });
     });

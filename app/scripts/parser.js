@@ -22,13 +22,15 @@ function parseXFLR5Wing(fileName) {
     let lines = fs.readFileSync(fileName).toString().split('\n');
     lines.shift(); //first row is the wing name
     lines = _.compact(lines);
-    return lines.map(function (line) {
+    let foilDefs = {};
+    let sections = lines.map(function (line) {
         let section = _.mapValues(_.zipObject(XFLR5_KEYS, line.split(' ')), (val, key) => {
             return key === 'foil' ? path.format({ dir: dir, base: val }) : parseFloat(val);
         });
-        section.foil = parseFoil(section.foil);
+        foilDefs[section.foil] = parseFoil(section.foil);
         return section;
     });
+    return { sections, foilDefs };
 }
 
 let parseFoil = _.memoize((fileName) => {

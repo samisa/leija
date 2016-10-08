@@ -2,6 +2,7 @@ import React from 'react';
 import Scene from './Scene';
 import { ipcRenderer } from 'electron';
 import { createMesh } from '../wing3d';
+import WingEditor from  './WingEditor';
 
 const App = React.createClass({
     getInitialState: function() { return {}; },
@@ -9,10 +10,10 @@ const App = React.createClass({
     componentDidMount: function() {
         var that = this;
         console.log('mounted');
-        ipcRenderer.on('wingData' , function(event , data) {
+        ipcRenderer.on('wingData' , function(event , wing) {
             console.log('received data');
-            let mesh = createMesh(data.data);
-            that.setState({ wingObject: mesh });
+            let wingObject = createMesh(wing);
+            that.setState({ wingObject: { threeObject: wingObject, params: wing.sections } });
         });
     },
 
@@ -21,6 +22,7 @@ const App = React.createClass({
 
         return (
             <div className='main'>
+                <WingEditor wingObject={ wingObject } />
                 <Scene wingObject={ wingObject } />
             </div>
         );
