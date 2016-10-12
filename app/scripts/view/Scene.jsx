@@ -1,6 +1,7 @@
 import React from 'react';
-
+import _ from 'lodash';
 import * as THREE from 'three';
+
 import Foo from 'three-orbit-controls';
 let OrbitControls = Foo(THREE);
 
@@ -45,9 +46,14 @@ const Scene = React.createClass({
     },
 
     componentWillReceiveProps(newProps) {
-        let { wingObject } = newProps;
+        let { wingObject, bridleObject } = newProps;
+
         if (wingObject) {
             this.scene.add(wingObject.threeObject);
+        }
+
+        if (bridleObject) {
+            _.each(bridleObject.lines, (line) => { this.scene.add(line); });
         }
     },
 

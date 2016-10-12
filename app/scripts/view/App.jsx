@@ -2,6 +2,7 @@ import React from 'react';
 import Scene from './Scene';
 import { ipcRenderer } from 'electron';
 import { createMesh } from '../wing3d';
+import { createBridleObject } from '../bridle3d';
 import WingEditor from  './WingEditor';
 
 const App = React.createClass({
@@ -13,17 +14,18 @@ const App = React.createClass({
         ipcRenderer.on('wingData' , function(event , wing) {
             console.log('received data');
             let wingObject = createMesh(wing);
-            that.setState({ wingObject: { threeObject: wingObject, params: wing.sections } });
+            let bridle = createBridleObject({}, wing);
+            that.setState({ wingObject: { threeObject: wingObject, params: wing.sections }, bridleObject: bridle });
         });
     },
 
     render: function() {
-        let { wingObject } = this.state;
+        let { wingObject, bridleObject } = this.state;
 
         return (
             <div className='main'>
                 <WingEditor wingObject={ wingObject } />
-                <Scene wingObject={ wingObject } />
+                <Scene wingObject={ wingObject } bridleObject={ bridleObject } />
             </div>
         );
     }

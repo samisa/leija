@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import * as THREE from 'three';
 
-function createMesh(wing) {
+function wingSpecToPoints(wing) {
     let  { foilDefs, sections } = wing;
     // 1. immerse each sections' foilcoordinates to 3d space, and flatten eaxh foil to 3*nfoilpoints dimensional array
     //  let ydist = 0;
@@ -27,17 +27,23 @@ function createMesh(wing) {
         previousYDist = section.y;
     });
 
+
+    return _.map(foils, (foil) => { return _.chunk(foil, 3); });
+};
+
+function createMesh(wing) {
     let wingGeometry = new THREE.Geometry();
+    let foils = wingSpecToPoints(wing);
 
     _.each(foils, (foil) => {
         var x = _;
-        _(foil).chunk(3).each((p) => {
+        _(foil).each((p) => {
             wingGeometry.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
         });
     });
 
     //now assume each foil has same amount of vertices arranged in similar order:
-    let foilLength = foils[0].length / 3;
+    let foilLength = foils[0].length;
     for (var i = 0; i < foils.length - 1; i++) {
         let n = i * foilLength;
         for (var j = 0; j < foilLength - 1; j++) {
@@ -59,5 +65,6 @@ function createMesh(wing) {
 }
 
 export {
-    createMesh
+    createMesh,
+    wingSpecToPoints
 }
