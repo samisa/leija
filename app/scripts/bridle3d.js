@@ -96,13 +96,48 @@ let testBridleDef2 = {
 //     }
 // }
 
+// Find point on foil bottom at relative offset
+// back from le. (Works as long as there is not too much
+// twist on the foil so that chord is more or less in x direction)
+function foilBottomPoint(offset, foil) {
+    offset = 1 - offset;
+    let { lePoint, tePoint } = _.reduce(foil, (accumulator, point) => {
+        let { lePoint, tePoint } = accumulator;
+        lePoint = (lePoint && lePoint[0] > point[0]) ? lePoint : point;
+        tePoint = (tePoint && tePoint[0] < point[0]) ? tePoint : point;
+        return { lePoint, tePoint };
+    }, {});
+
+    let leV = new THREE.Vector3().fromArray(lePoint);
+    let teV = new THREE.Vector3().fromArray(tePoint);
+    // le + offset * (te - le)
+    let chordPointAtOffset = new THREE.Vector3().subVectors(teV, leV).multiplyScalar(offset).add(leV);
+    // now find point in foil's bottom side closest to the plane that goes through
+    // chordPointAtOffset and perpendicular to chord.
+    // TODO: make sure it's on the bottom side
+    let planeNormal = new THREE.Vector3().subVectors(teV, leV); //not normalized but should ot matter
+    let { closestPoint } = _.reduce(foil, (accumulator, point, index) => {
+        let { closestPoint, distSqr } = accumulator;
+        let newDistSqr = planeNormal.x * (chordPointAtOffset.x-point[0]) +
+                         planeNormal.y * (chordPointAtOffset.y-point[1]) +
+                         planeNormal.z * (chordPointAtOffset.z-point[2]);
+        newDistSqr = newDistSqr * newDistSqr;
+        if (distSqr && distSqr < newDistSqr) {
+            return accumulator;
+        } else {
+            return { closestPoint: point, distSqr: newDistSqr };
+        }
+    }, {});
+
+    return closestPoint;
+}
+
 function createBridleObject(bridleSpec, wing) {
-    //find coordinates of wing connection points
     let foils = wing3d.wingSpecToPoints(wing);
 
     let lines = _.map(foils, (foil) => {
-        let p1 = foil[0];
-        let p2 = [0, 0, -20];
+        let p1 = foilBottomPoint(0.3, foil);
+        let p2 = [0, 0, -5];
         return [p1, p2];
     });
 
