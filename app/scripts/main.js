@@ -27,7 +27,7 @@ app.on('ready', () => {
             setTimeout(() => {
                 console.log('sending data');
                 mainWindow.webContents.send('wingData' , wing);
-            }, 500);
+            }, 1500);
         });
     });
 

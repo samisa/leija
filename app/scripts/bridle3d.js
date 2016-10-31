@@ -1,100 +1,7 @@
 import _ from 'lodash';
 import * as THREE from 'three';
 import * as wing3d from './wing3d';
-
-let testBridleSpec = {
-    mainLineLength: 20,
-    barLength: 0.5,
-    nRows: 3,
-    towPoint: 0.2, //percent back from center le.
-    wingConnections: [
-        {
-            xPos: 0,
-            foils: [1,3,5,7]
-        },
-        {
-            xPos: 0.3, //fraction of chord length
-            foils: [1,3,5,7]
-        },
-        {
-            xPos: 1.0, //fraction of chord length
-            foils: [1,3,5,7]
-        }
-    ]
-};
-
-
-////
-//kite connections are fixed bar connections are fixed
-// 1. line from pointa to n points with division @ length l --- not unique
-
-
-
-
-let testBridleDef = {
-    lines: [
-        {
-            name: 'main',
-            l: 20,
-            division: 2,
-            lines: [
-                {
-                    name: 'a',
-                    l: 2,
-                    division: 2,
-                    lines: [
-                        {
-                            name: 'a1',
-                            l: 2,
-                            lines: [
-                                {
-                                    name: 'a1a',
-                                    l: 0.5,
-                                    kitePoint: { foil: 0, offset: 0 }
-                                },
-                                {
-                                    name: 'a1b',
-                                    l: 0.5,
-                                    kitePoint: { foil: 2, offset: 0 }
-                                }
-                            ]
-                        },
-                        {
-                            name: 'a2',
-                            l: 2,
-                            lines: [
-                                {
-                                    name: 'a2a',
-                                    l: 0.5,
-                                    kitePoint: { foil: 4, offset: 0 }
-                                },
-                                {
-                                    name: 'a2b',
-                                    l: 0.5,
-                                    kitePoint: { foil: 6, offset: 0 }
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }
-    ]
-};
-
-let testBridleDef2 = {
-};
-
-    //     wingConnections: [
-//         {
-//             x: 0
-//             foils: [1, 3,  ]
-//         }
-//     ]
-//     }
-//     aBridle: {
-//     }
-// }
+import * as bridles from './bridle';
 
 // Find point on foil bottom at relative offset
 // back from le. (Works as long as there is not too much
@@ -132,26 +39,71 @@ function foilBottomPoint(offset, foil) {
     return closestPoint;
 }
 
-function createBridleObject(bridleSpec, wing) {
-    let foils = wing3d.wingSpecToPoints(wing);
 
-    let lines = _.map(foils, (foil) => {
-        let p1 = foilBottomPoint(0.3, foil);
-        let p2 = [0, 0, -5];
-        return [p1, p2];
-    });
+// function canopyLines(bridleSpec, wing) {
+//     let foils = wing3d.wingSpecToPoints(wing);
+//     let wingLineRows = _.map(bridleSpec.wingConnections, (connectionRow) => {
+//         connectionRow.foils.map((foilIndex) => {
+//             return {
+//                 top: foilBottomPoint(connectionRow.xPos, foils[foilIndex]),
+//                 bottom: null,
+//                 length: bridleSpec.wingLineLenght
+//             };
+//         });
+//     });
+
+//     // A-canopy.
+//     // Group wing lines to pairs and calculate their bottom coords for given a-line end point (aLineLowEnd):
+//     _(wingLineRows[0]).chunk(2).map((pair) => {
+//         // find point whose distance from top point of each line in the pair == wingLineLength and
+//         // which is in the plane of aLineLowEnd and the top points.
+//         let low = new THREE.Vector3().fromArray(bridleSpec.aLineLowEnd);
+//         let top1 = new THREE.Vector3().fromArray(pair[0].top);
+//         let top2 = new THREE.Vector3().fromArray(pair[1].top);
+//         //ugly set of quadratic equations...
+//         //let's try simulation after all...
+//     });
+// };
+
+function createBridleObject(bridleSpec, wing) {
+    let bridle = bridles.initNetForSolver(bridles.testBridleSpec, wing);
+    bridles.solveBridle(bridle);
 
     var material = new THREE.LineBasicMaterial({ color: 0x0000ff });
-    lines = _(lines).map((line) => {
+    let lines = _(bridle.links).map((link) => {
+        return _.map(link.nodes, (node) => {
+            return node.position;
+        });
+    }).map((line) => {
         let rightLineGeometry = new THREE.Geometry();
-        rightLineGeometry.vertices.push(new THREE.Vector3(line[0][0], line[0][1], line[0][2]));
-        rightLineGeometry.vertices.push(new THREE.Vector3(line[1][0], line[1][1], line[1][2]));
+        rightLineGeometry.vertices.push(line[0]);
+        rightLineGeometry.vertices.push(line[1]);
         let leftLineGeometry = rightLineGeometry.clone();
         leftLineGeometry.applyMatrix(new THREE.Matrix4().makeScale(1,-1, 1));
         return [ new THREE.Line(leftLineGeometry, material), new THREE.Line(rightLineGeometry, material) ];
     }).flatten().value();
 
     return { lines };
+
+    // let foils = wing3d.wingSpecToPoints(wing);
+
+    // let lines = _.map(foils, (foil) => {
+    //     let p1 = foilBottomPoint(0.3, foil);
+    //     let p2 = [0, 0, -5];
+    //     return [p1, p2];
+    // });
+
+    // var material = new THREE.LineBasicMaterial({ color: 0x0000ff });
+    // lines = _(lines).map((line) => {
+    //     let rightLineGeometry = new THREE.Geometry();
+    //     rightLineGeometry.vertices.push(new THREE.Vector3(line[0][0], line[0][1], line[0][2]));
+    //     rightLineGeometry.vertices.push(new THREE.Vector3(line[1][0], line[1][1], line[1][2]));
+    //     let leftLineGeometry = rightLineGeometry.clone();
+    //     leftLineGeometry.applyMatrix(new THREE.Matrix4().makeScale(1,-1, 1));
+    //     return [ new THREE.Line(leftLineGeometry, material), new THREE.Line(rightLineGeometry, material) ];
+    // }).flatten().value();
+
+    // return { lines };
 }
 
 export {
