@@ -47,7 +47,6 @@ const Scene = React.createClass({
 
     componentWillReceiveProps(newProps) {
         let { wingObject, bridleObject } = newProps;
-        debugger;
 
         this.scene.remove(this.wingObject);
         _.each(this.bridleObject && this.bridleObject.lines, (line) => { this.scene.remove(line); });
