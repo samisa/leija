@@ -182,3 +182,28 @@ export function initNetForSolver(bridleSpec, wing) {
         links: _.flatten([_.flatten(line0Rows), _.flatten(line1Rows), line2s])
     };
 }
+
+
+/*
+----------------------
+. ---------------------  0-nodes, fixed on kite
+ \   /  ---------------  0-lines, fixed length
+  \ /
+   .   ----------------  1-nodes
+   \     --------------  1-lines
+    \|/
+     .  ---------------  2-nodes
+   \  \  --------------  2-lines, one for a, b, c (per side)
+    \  \
+  \  \  \
+   \  .  \  -----------  3-node, end of be b-bridle
+    \ |\  \  ----------  2 pulley lines a and c
+     \|  \ \
+      .    \. ---------  i4-nodes - 2a-line to a-pulley line. 2c-line to c-pulley iine
+       \     \
+        \     \  ------  brake line to 4c-node, primary line to 4a-node, fixed length
+         \     \
+          .-----.       bar-nodes, fixed
+
+*/
+
