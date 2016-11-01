@@ -29,19 +29,22 @@ const WingEditor = React.createClass({
     cellChangeHandler: function(col, rowIndex) {
         let that = this;
         return (evt) => {
-            that.state.wingObject.params[rowIndex][col] = evt.target.value;
+            that.state.wingDefinition.sections[rowIndex][col] = evt.target.value;
             that.setState(that.state);
         };
     },
 
     componentWillReceiveProps: function(newProps) {
-        this.setState({ wingObject: _.clone(newProps.wingObject) });
+        this.setState({ wingDefinition: _.clone(newProps.wingDefinition) });
+    },
+
+    applyChanges: function() {
+        this.props.handleApplyChanges(_.clone(this.state.wingDefinition));
     },
 
     render: function() {
-        let { wingObject } = this.state;
-        if (!wingObject) { return null; }
-        let { params } = wingObject;
+        let { wingDefinition } = this.state;
+        if (!wingDefinition) { return null; }
 
         return (
             <div className='wing-params-editor'>
@@ -50,9 +53,10 @@ const WingEditor = React.createClass({
                         <tr>
                             { _.map(COLUMNS, (col) => { return <th>{ col }</th>; }) }
                         </tr>
-                        { params.map(this.sectionRow) }
+                        { wingDefinition.sections.map(this.sectionRow) }
                     </tbody>
                 </table>
+                <button onClick={ this.applyChanges }> Apply changes </button>
             </div>
         );
 

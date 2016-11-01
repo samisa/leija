@@ -47,13 +47,19 @@ const Scene = React.createClass({
 
     componentWillReceiveProps(newProps) {
         let { wingObject, bridleObject } = newProps;
+        debugger;
+
+        this.scene.remove(this.wingObject);
+        _.each(this.bridleObject && this.bridleObject.lines, (line) => { this.scene.remove(line); });
 
         if (wingObject) {
-            this.scene.add(wingObject.threeObject);
+            this.scene.add(wingObject);
+            this.wingObject = wingObject;
         }
 
         if (bridleObject) {
             _.each(bridleObject.lines, (line) => { this.scene.add(line); });
+            this.bridleObject = bridleObject;
         }
     },
 

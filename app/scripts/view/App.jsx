@@ -13,10 +13,18 @@ const App = React.createClass({
         console.log('mounted');
         ipcRenderer.on('wingData' , function(event , wing) {
             console.log('received data');
-            let wingObject = createMesh(wing);
-            let bridle = createBridleObject({}, wing);
-            that.setState({ wingObject: { threeObject: wingObject, params: wing.sections }, bridleObject: bridle });
+            that.updateWingParams(wing);
         });
+    },
+
+    updateWingParams: function(wing) {
+        let wingObject = createMesh(wing);
+        let bridle = createBridleObject({}, wing);
+        this.setState({ wingObject: { threeObject: wingObject, wingDefinition: wing }, bridleObject: bridle });
+    },
+
+    handleWingParamsChanged: function(newWingDefinition) {
+        this.updateWingParams(newWingDefinition);
     },
 
     render: function() {
@@ -24,8 +32,8 @@ const App = React.createClass({
 
         return (
             <div className='main'>
-                <WingEditor wingObject={ wingObject } />
-                <Scene wingObject={ wingObject } bridleObject={ bridleObject } />
+                <WingEditor wingDefinition={ wingObject && wingObject.wingDefinition } handleApplyChanges={ this.handleWingParamsChanged }/>
+                <Scene wingObject={ wingObject && wingObject.threeObject } bridleObject={ bridleObject } />
             </div>
         );
     }
