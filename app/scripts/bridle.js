@@ -8,21 +8,22 @@ export const testBridleSpec = {
     nRows: 3,
     towPoint: 0.2, //percent back from center le.
     wingConnections: [
-        {
-            xPos: 0,
+        {  // a-lines
+            xPos: 0.0,
             foils: [0,1,2,3,4,5,6,7]
         },
-        {
+        {  // b-lines
             xPos: 0.3, //fraction of chord length
             foils: [0,1,2,3,4,5,6,7]
         },
-        {
+        {  // c-lines
             xPos: 1.0, //fraction of chord length
             foils: [0,1,2,3,4,5,6,7]
         }
     ],
     wingLineLength: 0.3, //the shoort linies that  connect to wing
-    aLineLowEnd: [0.20, 0.5, -3.0]
+    //aLineLowEnd: [0.20, 0.5, -3.0],
+    bLineLength: 1
 };
 
 function foilBottomPoint(offset, foil) {
@@ -92,7 +93,7 @@ export function solveBridle(net) {
             node.force = new THREE.Vector3().set(0, 0, 0);
         });
 
-        // for each link calculate force and add it to the  nodes
+        // for each link calculate force and add it to the nodes
        _(net.links).each((link) => {
            let force = linkForce(link.nodes[0].position, link.nodes[1].position, link.length);
            link.nodes[0].fixed || link.nodes[0].force.add(force);
@@ -105,6 +106,7 @@ export function solveBridle(net) {
             node.velocity = node.velocity || (new THREE.Vector3().set(0, 0, 0));
             node.velocity.add(node.force.multiplyScalar(0.01));
             node.velocity.multiplyScalar(0.7);
+            if (node.yFixed) { node.velocity.y = 0; }
             node.position.add(new THREE.Vector3().copy(node.velocity).multiplyScalar(0.01));
             let deltaSq = node.velocity.lengthSq();
             maxDeltaSqr = Math.max(deltaSq, maxDeltaSqr);
@@ -168,18 +170,25 @@ export function initNetForSolver(bridleSpec, wing) {
         return node;
     });
 
-    //links for them:
-    let line2s = _.map(node2s, (node) => {
-        return { length: bridleSpec.mainLineLength, nodes: [ node ] };
-    });
 
-    let node3 = { position: new THREE.Vector3().set( 0, 0, -22), fixed: true };
-    _(line2s).each((link) => { link.nodes[1] = node3; });
-
+    let node3a = { position: new THREE.Vector3().set(0, 0, 0), yFixed: true };
+    let node3b = { position: new THREE.Vector3().set(0, 0, 0) };
+    let node3c = { position: new THREE.Vector3().set(0, 0, 0) };
+    let barEndNode = { position: new THREE.Vector3().set(0, 0.25, -23), fixed: true };
+    let barMidNode = { position: new THREE.Vector3().set(0, 0, -23), fixed: true };
+    let line2a = { nodes: [ node2s[0], node3a ] };
+    let line2b = { nodes: [ node2s[1], node3b ] };
+    let line2c = { nodes: [ node2s[2], node3c ] };
+    let pulleyLinea = { nodes: [ node3b, node3a ] };
+    let pulleyLineb = { nodes: [ node3b, node3c ] };
+    let primaryLine = { nodes: [ node3a, barMidNode ], length: 20 };
+    let brakeLine = { nodes: [ node3c, barEndNode ], length: 20 };
     //finally concatenate links and nodes:
     return {
-        nodes: _.flatten([_.flatten(node0Rows), _.flatten(node1Rows), node2s, [node3]]),
-        links: _.flatten([_.flatten(line0Rows), _.flatten(line1Rows), line2s])
+        nodes: _.flatten([_.flatten(node0Rows), _.flatten(node1Rows), node2s,
+                          [node3a, node3b, node3c, barEndNode, barMidNode]]),
+        links: _.flatten([_.flatten(line0Rows), _.flatten(line1Rows),
+                          [line2a, line2b, line2c, pulleyLinea, pulleyLineb, primaryLine, brakeLine]])
     };
 }
 
@@ -196,10 +205,10 @@ export function initNetForSolver(bridleSpec, wing) {
    \  \  --------------  2-lines, one for a, b, c (per side)
     \  \
   \  \  \
-   \  .  \  -----------  3-node, end of be b-bridle
+   \  .  \  -----------  3b-node, end of be b-bridle, pulley
     \ |\  \  ----------  2 pulley lines a and c
      \|  \ \
-      .    \. ---------  i4-nodes - 2a-line to a-pulley line. 2c-line to c-pulley iine
+      .    \. ---------  3a, 3b-nodes - 2a-line to a-pulley line. 2c-line to c-pulley iine
        \     \
         \     \  ------  brake line to 4c-node, primary line to 4a-node, fixed length
          \     \
