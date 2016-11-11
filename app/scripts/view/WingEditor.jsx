@@ -3,6 +3,8 @@ import _ from 'lodash';
 
 import Input from './Input';
 
+import actions from '../actions';
+
 const COLUMNS = [ 'y', 'chord', 'offset', 'dihedral', 'twist', 'foil' ];
 
 const WingEditor = React.createClass({
@@ -39,12 +41,11 @@ const WingEditor = React.createClass({
     },
 
     applyChanges: function() {
-        this.props.handleApplyChanges(_.clone(this.state.wingDefinition));
+        actions.updateWing(_.clone(this.state.wingDefinition));
     },
 
     render: function() {
         let { wingDefinition } = this.state;
-        if (!wingDefinition) { return null; }
 
         return (
             <div className='wing-params-editor'>
@@ -53,10 +54,12 @@ const WingEditor = React.createClass({
                         <tr>
                             { _.map(COLUMNS, (col) => { return <th>{ col }</th>; }) }
                         </tr>
-                        { wingDefinition.sections.map(this.sectionRow) }
+                        { wingDefinition && wingDefinition.sections.map(this.sectionRow) }
                     </tbody>
                 </table>
-                <button onClick={ this.applyChanges }> Apply changes </button>
+                { wingDefinition && <button onClick={ this.applyChanges }> Apply changes </button> }
+                { wingDefinition && <button onClick={ actions.saveKite }> Save... </button> }
+                <button onClick={ actions.openKite }> Open... </button>
             </div>
         );
 

@@ -21,14 +21,14 @@ app.on('ready', () => {
 
     //for debugging renderer  process
     mainWindow.webContents.on('did-finish-load', () => {
-        mainWindow.webContents.openDevTools();
-        let wing = parser.parse('app/res/matowing.xwimp');
-        mainWindow.webContents.on('devtools-opened', () => {
-            setTimeout(() => {
-                console.log('sending data');
-                mainWindow.webContents.send('wingData' , wing);
-            }, 1500);
-        });
+        //mainWindow.webContents.openDevTools();
+        // let wing = parser.parse('app/res/matowing.xwimp');
+        // mainWindow.webContents.on('devtools-opened', () => {
+        //     setTimeout(() => {
+        //         console.log('sending data');
+        //         mainWindow.webContents.send('wingData' , wing);
+        //     }, 1500);
+        // });
     });
 
     // let wing = parser.parse('app/res/matowing.xwimp');
