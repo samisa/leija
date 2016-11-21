@@ -7,6 +7,7 @@ import { ipcRenderer } from 'electron';
 import { createMesh } from '../wing3d';
 import { createBridleObject } from '../bridle3d';
 import WingEditor from  './WingEditor';
+import actions from '../actions';
 
 let App = React.createClass({
     render: function() {
@@ -14,6 +15,7 @@ let App = React.createClass({
 
         return (
             <div className='main'>
+                <button onClick={ actions.createSheets }> "Generate sheets" </button> 
                 <WingEditor wingDefinition={ wingDefinition }/>
                 <Scene wingObject={ wingObject } bridleObject={ bridleObject } />
             </div>

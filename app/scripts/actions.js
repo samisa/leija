@@ -1,10 +1,11 @@
 import { remote } from 'electron';
+const  { dialog } = remote;
 import * as fs from 'fs';
+
 import notification from './notification';
 import state from './state';
 import * as parser from  './parser';
-
-const  { dialog } = remote;
+import { project, sheetsToSVG } from './wingplan';
 
 function saveKite() {
     let path = dialog.showSaveDialog();
@@ -37,9 +38,17 @@ var updateWing = state.actionCreator((wing) => {
     };
 });
 
+var createSheets = state.actionCreator(() => {
+    return function(dispatch, getState) {
+        let wing = getState().wing;
+        let sheets = project(wing);
+        sheetsToSVG(sheets);
+    };
+});
 
 export default {
     openKite,
     saveKite,
-    updateWing
+    updateWing,
+    createSheets
 };
