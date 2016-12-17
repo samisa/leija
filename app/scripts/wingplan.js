@@ -21,9 +21,9 @@ function vec2(array = null) {
     return array ? new THREE.Vector2().fromArray(array) : new THREE.Vector2();
 }
 
-// tto bad threejs does not support 2d transformations and matrices.
+// too bad threejs does not support 2d transformations and matrices.
 function rotate2(vec, angle) {
-    vec.set(Math.cos(angle) * vec.x - Math.sin(angle) * vec.y, Math.sin(angle) * vec.x + Math.cos(angle) * vec.y);  
+    vec.set(Math.cos(angle) * vec.x - Math.sin(angle) * vec.y, Math.sin(angle) * vec.x + Math.cos(angle) * vec.y);
 };
 
 

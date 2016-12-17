@@ -6,6 +6,7 @@ import notification from './notification';
 import state from './state';
 import * as parser from  './parser';
 import { project, sheetsToSVG } from './wingplan';
+import * as bridles from './bridle';
 
 function saveKite() {
     let path = dialog.showSaveDialog();
@@ -28,6 +29,7 @@ var openKite = state.actionCreator(() => {
         if (!file) { return; }
         file = file[0];
         let wing = parser.parse(file);
+        dispatch({ type: 'SET_BRIDLE_PARAMS', bridle: bridles.testBridleSpec });
         dispatch({ type: 'SET_WING_PARAMS', wing });
     };
 });
@@ -35,6 +37,12 @@ var openKite = state.actionCreator(() => {
 var updateWing = state.actionCreator((wing) => {
     return function(dispatch, getState) {
         dispatch({ type: 'SET_WING_PARAMS', wing });
+    };
+});
+
+var updateBridle = state.actionCreator((bridle) => {
+    return function(dispatch, getState) {
+        dispatch({ type: 'SET_BRIDLE_PARAMS', bridle });
     };
 });
 
@@ -50,5 +58,6 @@ export default {
     openKite,
     saveKite,
     updateWing,
+    updateBridle,
     createSheets
 };

@@ -5,10 +5,12 @@ import React from 'react';
 
 var store;
 
-let root = (state= {}, action) => {
+let root = (state = {}, action) => {
     switch(action.type) {
     case 'SET_WING_PARAMS':
-        return { wing: action.wing };
+        return Object.assign({}, state, { wing: action.wing });
+    case 'SET_BRIDLE_PARAMS':
+        return Object.assign({}, state, { bridle: action.bridle });
     default:
         return state;
     }
@@ -35,5 +37,3 @@ export default {
         return <Provider store={store}>{ child }</Provider>;
     }
 };
-
-

@@ -4,9 +4,10 @@ import * as wing3d from './wing3d';
 
 export const testBridleSpec = {
     mainLineLength: 20,
+    cascade1Length: 1.0,
     barLength: 0.5,
     nRows: 3,
-    towPoint: 0.2, //percent back from center le.
+    towPoint: 0.34, //percent back from center le. b-bridle position
     wingConnections: [
         {  // a-lines
             xPos: 0.0,
@@ -21,8 +22,7 @@ export const testBridleSpec = {
             foils: [0,1,2,3,4,5,6,7]
         }
     ],
-    wingLineLength: 0.3, //the shoort linies that  connect to wing
-    //aLineLowEnd: [0.20, 0.5, -3.0],
+    wingLineLength: 0.3, //the short lines that  connect to wing
     bLineLength: 1
 };
 
@@ -77,14 +77,20 @@ export function solveBridle(net) {
     let k = 1;
     let kFree = k / 3;
     let maxDeltaSqr = 0;
+    let maxDeltaVSqr = 0;
 
     // force on first node
-    function linkForce(pos0, pos1, L) {
+    function linkForce(link) {
+        let pos0 = link.nodes[0].position;
+        let pos1 = link.nodes[1].position;
+        let L = link.length;
         let rel = new THREE.Vector3().subVectors(pos1, pos0);
         let d2 = rel.lengthSq();
+        let theK = L === undefined ? kFree : k;
+        theK = link.weight === undefined ? theK : link.weight * theK;
         return L === undefined ?
-            rel.multiplyScalar(kFree) :
-            rel.multiplyScalar(k*(Math.max(d2 - L*L, 0)));
+            rel.multiplyScalar(theK) :
+            rel.multiplyScalar(theK*(Math.max(d2 - L*L, 0)));
     };
 
     function iterate() {
@@ -95,13 +101,14 @@ export function solveBridle(net) {
 
         // for each link calculate force and add it to the nodes
        _(net.links).each((link) => {
-           let force = linkForce(link.nodes[0].position, link.nodes[1].position, link.length);
+           let force = linkForce(link);
            link.nodes[0].fixed || link.nodes[0].force.add(force);
            link.nodes[1].fixed || link.nodes[1].force.sub(force);
        });
 
         maxDeltaSqr = 0;
-        // apply forces on nodes. assume velocity does not accumulate... propably won't work............
+        maxDeltaVSqr = 0;
+
         _(net.nodes).filter((node) => { return !node.fixed; }).each((node) => {
             node.velocity = node.velocity || (new THREE.Vector3().set(0, 0, 0));
             node.velocity.add(node.force.multiplyScalar(0.01));
@@ -137,15 +144,16 @@ export function initNetForSolver(bridleSpec, wing) {
 
     //links for them:
     let line0Rows = _.map(node0Rows, (nodeRow) => {
-        return _.map(nodeRow, (node) => {
+        return _.map(nodeRow, (node, index) => {
             return {
-                length: bridleSpec.wingLineLength,
-                nodes: [ node ]
+//                length: bridleSpec.wingLineLength,
+                nodes: [ node ],
+                weight: 1/(1+3/(index+1))
             };
         });
     });
 
-    //create 1st order nodes and add to links:
+    //create 1st cascade nodes and add to links:
     let node1Rows = _.map(line0Rows, (row) => {
         return _(row).chunk(2).map((linkPair) => {
             let node = { position: new THREE.Vector3().set(0, 0, 0) };
@@ -156,14 +164,16 @@ export function initNetForSolver(bridleSpec, wing) {
 
     //links for them:
     let line1Rows = _.map(node1Rows, (nodeRow) => {
-        return _.map(nodeRow, (node) => {
+        return _.map(nodeRow, (node, index) => {
             return {
-                nodes: [ node ]
+                nodes: [ node ],
+                weight: 1/(1+2/(index+1))
+                //length: bridleSpec.cascade1Length
             };
         });
     });
 
-    //create 2nd order nodes and add to links:
+    //create 2nd cascade nodes and add to links:
     let node2s = _.map(line1Rows, (row) => {
         let node = { position: new THREE.Vector3().set(0, 0, 0) };
         _(row).each((link) => { link.nodes[1] = node; });
@@ -174,15 +184,15 @@ export function initNetForSolver(bridleSpec, wing) {
     let node3a = { position: new THREE.Vector3().set(0, 0, 0), yFixed: true };
     let node3b = { position: new THREE.Vector3().set(0, 0, 0) };
     let node3c = { position: new THREE.Vector3().set(0, 0, 0) };
-    let barEndNode = { position: new THREE.Vector3().set(0, 0.25, -23), fixed: true };
-    let barMidNode = { position: new THREE.Vector3().set(0, 0, -23), fixed: true };
+    let barEndNode = { position: new THREE.Vector3().set(0, bridleSpec.barLength/2, -bridleSpec.mainLineLength - 3), fixed: true };
+    let barMidNode = { position: new THREE.Vector3().set(0, 0, -bridleSpec.mainLineLength - 3), fixed: true };
     let line2a = { nodes: [ node2s[0], node3a ] };
     let line2b = { nodes: [ node2s[1], node3b ] };
     let line2c = { nodes: [ node2s[2], node3c ] };
     let pulleyLinea = { nodes: [ node3b, node3a ] };
     let pulleyLineb = { nodes: [ node3b, node3c ] };
-    let primaryLine = { nodes: [ node3a, barMidNode ], length: 20 };
-    let brakeLine = { nodes: [ node3c, barEndNode ], length: 20 };
+    let primaryLine = { nodes: [ node3a, barMidNode ], length: bridleSpec.mainLineLength };
+    let brakeLine = { nodes: [ node3c, barEndNode ], length: bridleSpec.mainLineLength };
     //finally concatenate links and nodes:
     return {
         nodes: _.flatten([_.flatten(node0Rows), _.flatten(node1Rows), node2s,

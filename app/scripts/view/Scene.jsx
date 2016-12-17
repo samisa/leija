@@ -30,7 +30,7 @@ const Scene = React.createClass({
         //controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
         controls.enableDamping = true;
         controls.dampingFactor = .9;
-        controls.enableZoom = false;
+        controls.enableZoom = true;
         // lights
         let light = new THREE.DirectionalLight( 0xffffff );
         light.position.set( 1, 1, 1 );

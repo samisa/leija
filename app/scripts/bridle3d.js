@@ -39,37 +39,11 @@ function foilBottomPoint(offset, foil) {
     return closestPoint;
 }
 
-
-// function canopyLines(bridleSpec, wing) {
-//     let foils = wing3d.wingSpecToPoints(wing);
-//     let wingLineRows = _.map(bridleSpec.wingConnections, (connectionRow) => {
-//         connectionRow.foils.map((foilIndex) => {
-//             return {
-//                 top: foilBottomPoint(connectionRow.xPos, foils[foilIndex]),
-//                 bottom: null,
-//                 length: bridleSpec.wingLineLenght
-//             };
-//         });
-//     });
-
-//     // A-canopy.
-//     // Group wing lines to pairs and calculate their bottom coords for given a-line end point (aLineLowEnd):
-//     _(wingLineRows[0]).chunk(2).map((pair) => {
-//         // find point whose distance from top point of each line in the pair == wingLineLength and
-//         // which is in the plane of aLineLowEnd and the top points.
-//         let low = new THREE.Vector3().fromArray(bridleSpec.aLineLowEnd);
-//         let top1 = new THREE.Vector3().fromArray(pair[0].top);
-//         let top2 = new THREE.Vector3().fromArray(pair[1].top);
-//         //ugly set of quadratic equations...
-//         //let's try simulation after all...
-//     });
-// };
-
-function createBridleObject(bridleSpec, wing) {
-    let bridle = bridles.initNetForSolver(bridles.testBridleSpec, wing);
+function createBridleObject(wing, bridleSpec) {
+    let bridle = bridles.initNetForSolver(bridleSpec, wing);
     bridles.solveBridle(bridle);
 
-    var material = new THREE.LineBasicMaterial({ color: 0x0000ff });
+    var material = new THREE.LineBasicMaterial({ color: 0xff0011 });
     let lines = _(bridle.links).map((link) => {
         return _.map(link.nodes, (node) => {
             return node.position;
