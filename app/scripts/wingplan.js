@@ -26,6 +26,12 @@ function rotate2(vec, angle) {
     vec.set(Math.cos(angle) * vec.x - Math.sin(angle) * vec.y, Math.sin(angle) * vec.x + Math.cos(angle) * vec.y);
 };
 
+function wingToFoilSheetOutlines(wing) {
+    let  { foilDefs, sections } = wing;
+    return sections.map((section) => {
+        return { outline: foilDefs[section.foil].map((point) => { return vec2(point).multiplyScalar(section.chord); }) };
+    });
+}
 
 function sectionEdgesToSheetOutline(foil1Edge, foil2Edge) {
     // for odd index triangles,  corner 0 meets corner 0 and corner 1 meets corner 2 of previous triangle
@@ -101,7 +107,7 @@ function sectionEdgesToSheetOutline(foil1Edge, foil2Edge) {
     let sheetRightOutline = _(triangles).map((tri, index) => { return index % 2 === 0 ? tri[1] : null; }).compact().reverse().value();
     sheetRightOutline.push(triangles[0][1]);
     sheetRightOutline.push(sheetLeftOutline[0]);
-    return sheetLeftOutline.concat(sheetRightOutline);
+    return _.reverse(sheetLeftOutline.concat(sheetRightOutline)); //finally reverse to make it run ccw
 }
 
 export function project(wing) {
@@ -127,12 +133,10 @@ export function project(wing) {
         topSheets.push({ outline: sectionEdgesToSheetOutline(foil1TopEdge, foil2TopEdge) });
         bottomSheets.push({ outline: sectionEdgesToSheetOutline(foil1BottomEdge, foil2BottomEdge) });
     }
-    // add given extra for sewing (need to find normal of the outline)
     // air holes for  bottom sheets
-    // foils should be more trivial
-    // need air holes
-
-    return { topSheets };
+    // foil air holes
+    // markers for bridle attachment points
+    return { topSheets, bottomSheets, foilSheets: wingToFoilSheetOutlines(wing) };
 }
 
 
@@ -143,7 +147,7 @@ export function sheetsToSVG(sheets, config={ seamAllowance: 0.01 }) {
             let p1 = sheet.outline[i];
             let p2 = sheet.outline[i+1 === sheet.outline.length ? 0 : i + 1];
             let p1Top2Rel = p2.clone().sub(p1);
-            let normal = vec2().set(-p1Top2Rel.y, p1Top2Rel.x).normalize();
+            let normal = vec2().set(p1Top2Rel.y, -p1Top2Rel.x).normalize();
             seam.push(p1.clone()
                       .add(p1Top2Rel.clone().multiplyScalar(0.5))
                       .add(normal.multiplyScalar(config.seamAllowance)));
@@ -153,8 +157,25 @@ export function sheetsToSVG(sheets, config={ seamAllowance: 0.01 }) {
         return Object.assign({}, sheet, { seam });
     };
 
+    // fill gaps between points
+    let fillOutline = (sheet, maxDist) => {
+        let filled = [];
+        for (let i = 0; i < sheet.outline.length; i++) {
+            let p1 = sheet.outline[i];
+            let p2 = i + 1 === sheet.outline.length ? sheet.outline[0] : sheet.outline[i + 1];
+            filled.push(p1);
+            let next = p1;
+            let p1Top2Unit = p2.clone().sub(p1).normalize();
+            while (next.distanceToSquared(p2) > maxDist * maxDist) {
+                next = next.clone().add(p1Top2Unit.clone().multiplyScalar(0.9 * maxDist));
+                filled.push(next);
+            }
+        }
+        return Object.assign({}, sheet, { outline: filled });
+    };
+
     let sheetToSVG = (sheet) => {
-        let { outline, seam } = addSeamAllowance(sheet);
+        let { outline, seam } = addSeamAllowance(fillOutline(sheet, 0.005));
 
         var lineFunction = d3.line()
                 .x(function(d) { return d.x; })
@@ -185,6 +206,7 @@ export function sheetsToSVG(sheets, config={ seamAllowance: 0.01 }) {
     };
 
     _.each(sheets.topSheets, sheetToSVG);
+    _.each(sheets.foilSheets, sheetToSVG);
 //    _.each(sheets.bottomSheets, sheetToSVG);
 }
 
