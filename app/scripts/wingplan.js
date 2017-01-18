@@ -27,14 +27,14 @@ function rotate2(vec, angle) {
 };
 
 
-function sectionEdgesToSheet(foil1Edge, foil2Edge) {
+function sectionEdgesToSheetOutline(foil1Edge, foil2Edge) {
     // for odd index triangles,  corner 0 meets corner 0 and corner 1 meets corner 2 of previous triangle
     // for even index triangles, corner 0 meets corner 2 and corner 1 meets corner 1 of previous triangle
     //    |            |
     //    --------------
     //    |2      1 / 2|
-    //    |      /     |
-    //    |0  /        |
+    // odd|      /     |
+    //    |0  /        | even
     //    |/ 0        1|
     //    --------------
     //
@@ -96,8 +96,10 @@ function sectionEdgesToSheet(foil1Edge, foil2Edge) {
         previous = tri;
     }
 
-    let sheetLeftOutline = _(triangles).map((tri, index) => { return index % 2 === 0 ? tri[0] : tri[2]; }).value();
-    let sheetRightOutline = _(triangles).map((tri) => { return tri[1]; }).reverse().value();
+    let sheetLeftOutline = _(triangles).map((tri, index) => { return index % 2 === 0 ? null : tri[0]; }).compact().value();
+    sheetLeftOutline.push(triangles[triangles.length-1][2]);
+    let sheetRightOutline = _(triangles).map((tri, index) => { return index % 2 === 0 ? tri[1] : null; }).compact().reverse().value();
+    sheetRightOutline.push(triangles[0][1]);
     sheetRightOutline.push(sheetLeftOutline[0]);
     return sheetLeftOutline.concat(sheetRightOutline);
 }
@@ -122,8 +124,8 @@ export function project(wing) {
         let foil2TopEdge = foil2.slice(0, teIndex2);
         let foil1BottomEdge = foil1.slice(teIndex1, foil1.length);
         let foil2BottomEdge = foil2.slice(teIndex2, foil2.length);
-        topSheets.push(sectionEdgesToSheet(foil1TopEdge, foil2TopEdge));
-        topSheets.push(sectionEdgesToSheet(foil1BottomEdge, foil2BottomEdge));
+        topSheets.push({ outline: sectionEdgesToSheetOutline(foil1TopEdge, foil2TopEdge) });
+        bottomSheets.push({ outline: sectionEdgesToSheetOutline(foil1BottomEdge, foil2BottomEdge) });
     }
     // add given extra for sewing (need to find normal of the outline)
     // air holes for  bottom sheets
@@ -134,23 +136,48 @@ export function project(wing) {
 }
 
 
-export function sheetsToSVG(sheets) {
+export function sheetsToSVG(sheets, config={ seamAllowance: 0.01 }) {
+    let addSeamAllowance = (sheet) => {
+        let seam = [];
+        for (let i = 0; i < sheet.outline.length; i++) {
+            let p1 = sheet.outline[i];
+            let p2 = sheet.outline[i+1 === sheet.outline.length ? 0 : i + 1];
+            let p1Top2Rel = p2.clone().sub(p1);
+            let normal = vec2().set(-p1Top2Rel.y, p1Top2Rel.x).normalize();
+            seam.push(p1.clone()
+                      .add(p1Top2Rel.clone().multiplyScalar(0.5))
+                      .add(normal.multiplyScalar(config.seamAllowance)));
+
+
+        }
+        return Object.assign({}, sheet, { seam });
+    };
+
     let sheetToSVG = (sheet) => {
+        let { outline, seam } = addSeamAllowance(sheet);
+
         var lineFunction = d3.line()
                 .x(function(d) { return d.x; })
                 .y(function(d) { return d.y; });
-        //            .interpolate("linear");
 
         var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         var svgContainer = d3.select(svg)
-                .attr("width", 600)
-                .attr("height", 600)
+                .attr("width", 1600)
+                .attr("height", 1600)
                 .attr("viewBox", "-1.1 -1.1 2.2 2.2");
 
-        var lineGraph = svgContainer.append("path")
-                .attr("d", lineFunction(sheet))
+        var outlineGraph = svgContainer.append("path")
+                .attr("d", lineFunction(outline))
                 .attr("stroke", "black")
-                .attr("stroke-width", 0.005)
+                .attr("stroke-width", 0.001)
+                .attr("fill", "none");
+
+        var seamGraph = svgContainer.append("path")
+                .attr("d", lineFunction(seam))
+                .style("stroke-dasharray", ("0.004, 0.004"))
+                .attr("class", "line")
+                .attr("stroke", "black")
+                .attr("stroke-width", 0.001)
                 .attr("fill", "none");
 
         let svgString = (new window.XMLSerializer).serializeToString(svg);
@@ -158,6 +185,6 @@ export function sheetsToSVG(sheets) {
     };
 
     _.each(sheets.topSheets, sheetToSVG);
-    _.each(sheets.bottomSheets, sheetToSVG);
+//    _.each(sheets.bottomSheets, sheetToSVG);
 }
 
