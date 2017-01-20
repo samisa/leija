@@ -3,23 +3,7 @@ import * as THREE from 'three';
 import * as d3 from 'd3';
 
 import { wingSpecToPoints } from './wing3d';
-
-function foilEdgePointIndices(foil) {
-    return  _.reduce(foil, (accumulator, point, index) => {
-        let { lePointIndex, tePointIndex } = accumulator;
-        lePointIndex = (lePointIndex !== undefined && foil[lePointIndex][0] > point[0]) ? lePointIndex : index;
-        tePointIndex = (tePointIndex !== undefined && foil[tePointIndex][0] < point[0]) ? tePointIndex : index;
-        return { lePointIndex, tePointIndex };
-    }, {});
-}
-
-function vec3(array = null) {
-    return array ? new THREE.Vector3().fromArray(array) : new THREE.Vector3();
-}
-
-function vec2(array = null) {
-    return array ? new THREE.Vector2().fromArray(array) : new THREE.Vector2();
-}
+import { foilBottomPointIndex, foilEdgePointIndices, vec3, vec2 } from './bridle';
 
 // too bad threejs does not support 2d transformations and matrices.
 function rotate2(vec, angle) {
@@ -45,8 +29,8 @@ function sectionEdgesToSheetOutline(foil1Edge, foil2Edge) {
     //    --------------
     //
     let triangles =  _(_.range(0, foil1Edge.length - 1)).map((n) => {
-        return [_.map([ foil1Edge[n],     foil2Edge[n], foil2Edge[n+1] ], vec3),
-                _.map([ foil1Edge[n],  foil2Edge[n + 1], foil1Edge[n+1] ], vec3)];
+        return [[ foil1Edge[n].clone(),     foil2Edge[n].clone(), foil2Edge[n+1].clone() ],
+                [ foil1Edge[n].clone(),  foil2Edge[n + 1].clone(), foil1Edge[n+1].clone() ]];
     }).flatten().value();
 
     triangles =  _.map(triangles, (tri) => {
@@ -110,7 +94,7 @@ function sectionEdgesToSheetOutline(foil1Edge, foil2Edge) {
     return _.reverse(sheetLeftOutline.concat(sheetRightOutline)); //finally reverse to make it run ccw
 }
 
-export function project(wing) {
+function project(wing) {
     let foils = wingSpecToPoints(wing);
 
     let topSheets = [];
@@ -140,7 +124,7 @@ export function project(wing) {
 }
 
 
-export function sheetsToSVG(sheets, config={ seamAllowance: 0.01 }) {
+export function planSVGS({ wing, bridle }, config={ seamAllowance: 0.01 }) {
     let addSeamAllowance = (sheet) => {
         let seam = [];
         for (let i = 0; i < sheet.outline.length; i++) {
@@ -174,39 +158,77 @@ export function sheetsToSVG(sheets, config={ seamAllowance: 0.01 }) {
         return Object.assign({}, sheet, { outline: filled });
     };
 
-    let sheetToSVG = (sheet) => {
+    const lineFunction = d3.line()
+        .x(function(d) { return d.x; })
+        .y(function(d) { return d.y; });
+
+    const outlineAndSeam = (svg, sheet) => {
         let { outline, seam } = addSeamAllowance(fillOutline(sheet, 0.005));
-
-        var lineFunction = d3.line()
-                .x(function(d) { return d.x; })
-                .y(function(d) { return d.y; });
-
-        var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        var svgContainer = d3.select(svg)
+        const svgContainer = d3.select(svg)
                 .attr("width", 1600)
                 .attr("height", 1600)
                 .attr("viewBox", "-1.1 -1.1 2.2 2.2");
 
-        var outlineGraph = svgContainer.append("path")
-                .attr("d", lineFunction(outline))
-                .attr("stroke", "black")
-                .attr("stroke-width", 0.001)
-                .attr("fill", "none");
+        svgContainer.append("path")
+            .attr("d", lineFunction(outline))
+            .attr("stroke", "black")
+            .attr("stroke-width", 0.001)
+            .attr("fill", "none");
 
-        var seamGraph = svgContainer.append("path")
-                .attr("d", lineFunction(seam))
-                .style("stroke-dasharray", ("0.004, 0.004"))
-                .attr("class", "line")
-                .attr("stroke", "black")
-                .attr("stroke-width", 0.001)
-                .attr("fill", "none");
+        svgContainer.append("path")
+            .attr("d", lineFunction(seam))
+            .style("stroke-dasharray", ("0.004, 0.004"))
+            .attr("class", "line")
+            .attr("stroke", "black")
+            .attr("stroke-width", 0.001)
+            .attr("fill", "none");
+
+        return svgContainer;
+    };
+
+    const addSheetLabel = (label, svgContainer) => {
+        svgContainer.append("text")
+            .attr('x', 0)
+            .attr('y', 0)
+            .text(label)
+            .attr("font-family", "sans-serif")
+            .attr("font-size", "0.02")
+            .attr("fill", "red");
+    };
+
+    const topPanelSVG = (sheet, index) => {
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        const svgContainer = outlineAndSeam(svg, sheet);
+        addSheetLabel('top-panel-' + index, svgContainer);
+        let svgString = (new window.XMLSerializer).serializeToString(svg);
+        document.body.appendChild(svg);
+    };
+
+    const profileSVG = (sheet, index) => {
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        const svgContainer = outlineAndSeam(svg, sheet);
+        addSheetLabel('profile-' + index, svgContainer);
+
+        bridle.wingConnections.map(({ xPos, foils }) => {
+            if (_.includes(foils, index)) {
+                let pos = sheet.outline[foilBottomPointIndex(xPos, sheet.outline)];
+                svgContainer.append("text")
+                    .attr('x', pos.x)
+                    .attr('y', pos.y)
+                    .text('XXXX')
+                    .attr("font-family", "sans-serif")
+                    .attr("font-size", "0.02")
+                    .attr("fill", "red");
+            }
+        });
 
         let svgString = (new window.XMLSerializer).serializeToString(svg);
         document.body.appendChild(svg);
     };
 
-    _.each(sheets.topSheets, sheetToSVG);
-    _.each(sheets.foilSheets, sheetToSVG);
+    let sheets = project(wing);
+    _.each(sheets.topSheets, topPanelSVG);
+    _.each(sheets.foilSheets, profileSVG);
 //    _.each(sheets.bottomSheets, sheetToSVG);
 }
 

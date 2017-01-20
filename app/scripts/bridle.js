@@ -26,37 +26,51 @@ export const testBridleSpec = {
     bLineLength: 1
 };
 
-function foilBottomPoint(offset, foil) {
-    offset = 1 - offset;
-    let { lePoint, tePoint } = _.reduce(foil, (accumulator, point) => {
-        let { lePoint, tePoint } = accumulator;
-        lePoint = (lePoint && lePoint[0] > point[0]) ? lePoint : point;
-        tePoint = (tePoint && tePoint[0] < point[0]) ? tePoint : point;
-        return { lePoint, tePoint };
-    }, {});
+//TODO:move to utils
+export function vec3(array = null) {
+    return array ? new THREE.Vector3().fromArray(array) : new THREE.Vector3();
+}
 
-    let leV = new THREE.Vector3().fromArray(lePoint);
-    let teV = new THREE.Vector3().fromArray(tePoint);
+//TODO:move to utils
+export function vec2(array = null) {
+    return array ? new THREE.Vector2().fromArray(array) : new THREE.Vector2();
+}
+
+//TODO:move to utils
+export function foilEdgePointIndices(foil) {
+    return  _.reduce(foil, (accumulator, point, index) => {
+        let { lePointIndex, tePointIndex } = accumulator;
+        lePointIndex = (lePointIndex !== undefined && foil[lePointIndex].x > point.x) ? lePointIndex : index;
+        tePointIndex = (tePointIndex !== undefined && foil[tePointIndex].x < point.x) ? tePointIndex : index;
+        return { lePointIndex, tePointIndex };
+    }, {});
+}
+
+//TODO:move to utils.
+export function foilBottomPointIndex(offset, foil) {
+    offset = 1 - offset;
+    let { lePointIndex, tePointIndex } = foilEdgePointIndices(foil);
+    let leV = foil[lePointIndex];
+    let teV = foil[tePointIndex];
     // le + offset * (te - le)
-    let chordPointAtOffset = new THREE.Vector3().subVectors(teV, leV).multiplyScalar(offset).add(leV);
-    // now find point in foil's bottom side closest to the plane that goes through
+    let chordPointAtOffset = vec2().subVectors(teV, leV).multiplyScalar(offset).add(leV);
+    // now find point in foil's bottom side closest to the line that goes through
     // chordPointAtOffset and perpendicular to chord.
-    // TODO: make sure it's on the bottom side
-    let planeNormal = new THREE.Vector3().subVectors(teV, leV); //not normalized but should ot matter
-    let { closestPoint } = _.reduce(foil, (accumulator, point, index) => {
+    // TODO: make sure it's on the bottom side,. Can be simplified as this is now in 2d
+    let normal = new vec2().subVectors(teV, leV); //not normalized but should ot matter
+    let { closestPointIndex } = _.reduce(foil, (accumulator, point, index) => {
         let { closestPoint, distSqr } = accumulator;
-        let newDistSqr = planeNormal.x * (chordPointAtOffset.x-point[0]) +
-                         planeNormal.y * (chordPointAtOffset.y-point[1]) +
-                         planeNormal.z * (chordPointAtOffset.z-point[2]);
+        let newDistSqr = normal.x * (chordPointAtOffset.x-point.x) +
+                         normal.y * (chordPointAtOffset.y-point.y);
         newDistSqr = newDistSqr * newDistSqr;
         if (distSqr && distSqr < newDistSqr) {
             return accumulator;
         } else {
-            return { closestPoint: point, distSqr: newDistSqr };
+            return { closestPointIndex: index, closestPoint: point, distSqr: newDistSqr };
         }
     }, {});
 
-    return closestPoint;
+    return closestPointIndex;
 }
 
 // net is a collection nodes, and collection of links.
@@ -135,8 +149,11 @@ export function initNetForSolver(bridleSpec, wing) {
     let foils = wing3d.wingSpecToPoints(wing);
     let node0Rows = _.map(bridleSpec.wingConnections, (connectionRow) => {
         return connectionRow.foils.map((foilIndex) => {
+            let foil3d = foils[foilIndex];
+            //TODO: store foildefs as vector2s
+            let foil2d = wing.foilDefs[wing.sections[foilIndex].foil].map((pt) => { return vec2(pt); });
             return {
-                position: new THREE.Vector3().fromArray(foilBottomPoint(connectionRow.xPos, foils[foilIndex])),
+                position: foil3d[foilBottomPointIndex(connectionRow.xPos, foil2d)].clone(),
                 fixed: true
             };
         });

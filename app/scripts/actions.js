@@ -5,7 +5,7 @@ import * as fs from 'fs';
 import notification from './notification';
 import state from './state';
 import * as parser from  './parser';
-import { project, sheetsToSVG } from './wingplan';
+import { planSVGS } from './wingplan';
 import * as bridles from './bridle';
 
 function saveKite() {
@@ -49,8 +49,8 @@ var updateBridle = state.actionCreator((bridle) => {
 var createSheets = state.actionCreator(() => {
     return function(dispatch, getState) {
         let wing = getState().wing;
-        let sheets = project(wing);
-        sheetsToSVG(sheets);
+        let bridle = getState().bridle;
+        planSVGS({ bridle, wing });
     };
 });
 

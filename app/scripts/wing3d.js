@@ -39,8 +39,7 @@ function wingSpecToPoints(wing) {
         previousTransformation.multiply(rotation);
     });
 
-
-    return _.map(foils, (foil) => { return _.chunk(foil, 3); });
+    return _.map(foils, (foil) => { return _.chunk(foil, 3).map((pt) => { return new THREE.Vector3().fromArray(pt); }); });
 };
 
 function createMesh(wing) {
@@ -50,7 +49,7 @@ function createMesh(wing) {
     _.each(foils, (foil) => {
         var x = _;
         _(foil).each((p) => {
-            wingGeometry.vertices.push(new THREE.Vector3(p[0], p[1], p[2]));
+            wingGeometry.vertices.push(p);
         });
     });
 
