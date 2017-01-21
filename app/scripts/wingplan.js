@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import * as d3 from 'd3';
 
 import { wingSpecToPoints } from './wing3d';
-import { foilBottomPointIndex, foilEdgePointIndices, vec3, vec2 } from './bridle';
+import { foilBottomPointIndex, foilLeadingEdgePointIndex, vec3, vec2 } from './bridle';
 
 // too bad threejs does not support 2d transformations and matrices.
 function rotate2(vec, angle) {
@@ -104,16 +104,12 @@ function project(wing) {
         let foil1 = foils[foilIndex];
         let foil2 = foils[foilIndex + 1];
 
-        let foilEdgePointIndices1 = foilEdgePointIndices(foil1);
-        let foilEdgePointIndices2 = foilEdgePointIndices(foil2);
-        let leIndex1 = foilEdgePointIndices1.lePointIndex;
-        let teIndex1 = foilEdgePointIndices1.tePointIndex;
-        let leIndex2 = foilEdgePointIndices2.lePointIndex;
-        let teIndex2 = foilEdgePointIndices2.tePointIndex;
-        let foil1TopEdge = foil1.slice(0, teIndex1);
-        let foil2TopEdge = foil2.slice(0, teIndex2);
-        let foil1BottomEdge = foil1.slice(teIndex1, foil1.length);
-        let foil2BottomEdge = foil2.slice(teIndex2, foil2.length);
+        let leIndex1 = foilLeadingEdgePointIndex(foil1);
+        let leIndex2 = foilLeadingEdgePointIndex(foil2);
+        let foil1TopEdge = foil1.slice(0, leIndex1);
+        let foil2TopEdge = foil2.slice(0, leIndex2);
+        let foil1BottomEdge = foil1.slice(leIndex1, foil1.length);
+        let foil2BottomEdge = foil2.slice(leIndex2, foil2.length);
         topSheets.push({ outline: sectionEdgesToSheetOutline(foil1TopEdge, foil2TopEdge) });
         bottomSheets.push({ outline: sectionEdgesToSheetOutline(foil1BottomEdge, foil2BottomEdge) });
     }
@@ -122,7 +118,6 @@ function project(wing) {
     // markers for bridle attachment points
     return { topSheets, bottomSheets, foilSheets: wingToFoilSheetOutlines(wing) };
 }
-
 
 export function planSVGS({ wing, bridle }, config={ seamAllowance: 0.01 }) {
     let addSeamAllowance = (sheet) => {
@@ -212,13 +207,12 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: 0.01 }) {
         bridle.wingConnections.map(({ xPos, foils }) => {
             if (_.includes(foils, index)) {
                 let pos = sheet.outline[foilBottomPointIndex(xPos, sheet.outline)];
-                svgContainer.append("text")
-                    .attr('x', pos.x)
-                    .attr('y', pos.y)
-                    .text('XXXX')
-                    .attr("font-family", "sans-serif")
-                    .attr("font-size", "0.02")
-                    .attr("fill", "red");
+                var circles = svgContainer
+                        .append("circle")
+                        .attr('cx', pos.x)
+                        .attr('cy', pos.y)
+                        .attr("r", 0.005)
+                        .style("fill", 'black');
             }
         });
 

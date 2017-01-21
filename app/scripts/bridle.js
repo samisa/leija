@@ -36,29 +36,28 @@ export function vec2(array = null) {
     return array ? new THREE.Vector2().fromArray(array) : new THREE.Vector2();
 }
 
-//TODO:move to utils
-export function foilEdgePointIndices(foil) {
+export function foilLeadingEdgePointIndex(foil) {
     return  _.reduce(foil, (accumulator, point, index) => {
-        let { lePointIndex, tePointIndex } = accumulator;
-        lePointIndex = (lePointIndex !== undefined && foil[lePointIndex].x > point.x) ? lePointIndex : index;
-        tePointIndex = (tePointIndex !== undefined && foil[tePointIndex].x < point.x) ? tePointIndex : index;
-        return { lePointIndex, tePointIndex };
-    }, {});
+        let lePointIndex = accumulator;
+        lePointIndex = (foil[lePointIndex].x > point.x) ?  index : lePointIndex;
+        return lePointIndex;
+    }, 0);
 }
 
 //TODO:move to utils.
 export function foilBottomPointIndex(offset, foil) {
-    offset = 1 - offset;
-    let { lePointIndex, tePointIndex } = foilEdgePointIndices(foil);
+    let lePointIndex = foilLeadingEdgePointIndex(foil);
     let leV = foil[lePointIndex];
-    let teV = foil[tePointIndex];
+    let teV = foil[foil.length-1];
     // le + offset * (te - le)
     let chordPointAtOffset = vec2().subVectors(teV, leV).multiplyScalar(offset).add(leV);
     // now find point in foil's bottom side closest to the line that goes through
+    // bottomside is points from le index to foil.length
     // chordPointAtOffset and perpendicular to chord.
-    // TODO: make sure it's on the bottom side,. Can be simplified as this is now in 2d
-    let normal = new vec2().subVectors(teV, leV); //not normalized but should ot matter
-    let { closestPointIndex } = _.reduce(foil, (accumulator, point, index) => {
+    // TODO: Can be simplified as this is now in 2d
+    let normal = vec2().subVectors(teV, leV); //not normalized but should ot matter
+    let { closestPointIndex } = _.reduce(foil.slice(lePointIndex, foil.length), (accumulator, point, i) => {
+        let index = i + lePointIndex; //cause we sliced...
         let { closestPoint, distSqr } = accumulator;
         let newDistSqr = normal.x * (chordPointAtOffset.x-point.x) +
                          normal.y * (chordPointAtOffset.y-point.y);

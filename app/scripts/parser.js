@@ -33,6 +33,8 @@ function parseXFLR5Wing(fileName) {
     return { sections, foilDefs };
 }
 
+
+// Aitfoil data points are assumed follow the standard: start form trailing edge (large x, usually 1.0) circulate ccw (i.e. top first then bottom)
 let parseFoil = _.memoize((fileName) => {
     let lines = fs.readFileSync(fileName).toString().split('\n');
     lines.shift(); //first row is the foil name
