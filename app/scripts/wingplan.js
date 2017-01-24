@@ -115,7 +115,6 @@ function project(wing) {
     }
     // air holes for  bottom sheets
     // foil air holes
-    // markers for bridle attachment points
     return { topSheets, bottomSheets, foilSheets: wingToFoilSheetOutlines(wing) };
 }
 
@@ -125,13 +124,14 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: 0.01 }) {
         for (let i = 0; i < sheet.outline.length; i++) {
             let p1 = sheet.outline[i];
             let p2 = sheet.outline[i+1 === sheet.outline.length ? 0 : i + 1];
+            let p3 = sheet.outline[i+2 === sheet.outline.length ? 0 : (i+1 === sheet.outline.length ? 1 : i + 2)];
             let p1Top2Rel = p2.clone().sub(p1);
-            let normal = vec2().set(p1Top2Rel.y, -p1Top2Rel.x).normalize();
-            seam.push(p1.clone()
-                      .add(p1Top2Rel.clone().multiplyScalar(0.5))
-                      .add(normal.multiplyScalar(config.seamAllowance)));
-
-
+            let p2Top3Rel = p3.clone().sub(p2);
+            let normal1 = vec2().set(p1Top2Rel.y, -p1Top2Rel.x).normalize();
+            let normal2 = vec2().set(p2Top3Rel.y, -p2Top3Rel.x).normalize();
+            seam.push(p2.clone()
+                      .add(normal1.multiplyScalar(config.seamAllowance*0.5))
+                      .add(normal2.multiplyScalar(config.seamAllowance*0.5)));
         }
         return Object.assign({}, sheet, { seam });
     };
