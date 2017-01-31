@@ -13,7 +13,7 @@ function rotate2(vec, angle) {
 function wingToFoilSheetOutlines(wing) {
     let  { foilDefs, sections } = wing;
     return sections.map((section) => {
-        return { outline: foilDefs[section.foil].map((point) => { return vec2(point).multiplyScalar(section.chord); }) };
+        return { outline: { profile: foilDefs[section.foil].map((point) => { return vec2(point).multiplyScalar(section.chord); }) } };
     });
 }
 
@@ -90,8 +90,15 @@ function sectionEdgesToSheetOutline(foil1Edge, foil2Edge) {
     sheetLeftOutline.push(triangles[triangles.length-1][2]);
     let sheetRightOutline = _(triangles).map((tri, index) => { return index % 2 === 0 ? tri[1] : null; }).compact().reverse().value();
     sheetRightOutline.push(triangles[0][1]);
-    sheetRightOutline.push(sheetLeftOutline[0]);
-    return _.reverse(sheetLeftOutline.concat(sheetRightOutline)); //finally reverse to make it run ccw
+
+    return {
+        outline: {//reverse(sheetLeftOutline.concat(sheetRightOutline)),
+            right: sheetRightOutline,
+            te: [sheetRightOutline[sheetRightOutline.length - 1], sheetLeftOutline[0]],
+            left: sheetLeftOutline,
+            le: [sheetLeftOutline[sheetLeftOutline.length - 1], sheetRightOutline[0]]
+        }
+    };
 }
 
 function project(wing) {
@@ -110,47 +117,51 @@ function project(wing) {
         let foil2TopEdge = foil2.slice(0, leIndex2);
         let foil1BottomEdge = foil1.slice(leIndex1, foil1.length);
         let foil2BottomEdge = foil2.slice(leIndex2, foil2.length);
-        topSheets.push({ outline: sectionEdgesToSheetOutline(foil1TopEdge, foil2TopEdge) });
-        bottomSheets.push({ outline: sectionEdgesToSheetOutline(foil1BottomEdge, foil2BottomEdge) });
+        topSheets.push(sectionEdgesToSheetOutline(foil1TopEdge, foil2TopEdge));
+        bottomSheets.push(sectionEdgesToSheetOutline(_.reverse(foil1BottomEdge), _.reverse(foil2BottomEdge)));
     }
+
+    // TODO:
     // air holes for  bottom sheets
     // foil air holes
     return { topSheets, bottomSheets, foilSheets: wingToFoilSheetOutlines(wing) };
 }
 
-export function planSVGS({ wing, bridle }, config={ seamAllowance: 0.01 }) {
-    let addSeamAllowance = (sheet) => {
-        let seam = [];
-        for (let i = 0; i < sheet.outline.length; i++) {
-            let p1 = sheet.outline[i];
-            let p2 = sheet.outline[i+1 === sheet.outline.length ? 0 : i + 1];
-            let p3 = sheet.outline[i+2 === sheet.outline.length ? 0 : (i+1 === sheet.outline.length ? 1 : i + 2)];
-            let p1Top2Rel = p2.clone().sub(p1);
-            let p2Top3Rel = p3.clone().sub(p2);
-            let normal1 = vec2().set(p1Top2Rel.y, -p1Top2Rel.x).normalize();
-            let normal2 = vec2().set(p2Top3Rel.y, -p2Top3Rel.x).normalize();
-            seam.push(p2.clone()
-                      .add(normal1.multiplyScalar(config.seamAllowance*0.5))
-                      .add(normal2.multiplyScalar(config.seamAllowance*0.5)));
-        }
-        return Object.assign({}, sheet, { seam });
+export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01, left: 0.01, le: 0.01, te: 0.02, profile: 0.01 } }) {
+    let addSeamAllowances = (sheet) => {
+        let seams = _.mapValues(sheet.outline, (edge, edgeName) => {
+            let seam = [];
+            for (let i = 0; i < edge.length; i++) {
+                let p1 = edge[i];
+                let p2 = edge[i+1 === edge.length ? i - 1 : i + 1];
+                let p1Top2Rel = p2.clone().sub(p1);
+                let normal1 = vec2().set(-p1Top2Rel.y, p1Top2Rel.x).normalize();
+                seam.push(p1.clone().add(normal1.multiplyScalar(config.seamAllowance[edgeName])));
+            }
+            return seam;
+        });
+        return Object.assign({}, sheet, { seams });
     };
 
     // fill gaps between points
     let fillOutline = (sheet, maxDist) => {
-        let filled = [];
-        for (let i = 0; i < sheet.outline.length; i++) {
-            let p1 = sheet.outline[i];
-            let p2 = i + 1 === sheet.outline.length ? sheet.outline[0] : sheet.outline[i + 1];
-            filled.push(p1);
-            let next = p1;
-            let p1Top2Unit = p2.clone().sub(p1).normalize();
-            while (next.distanceToSquared(p2) > maxDist * maxDist) {
-                next = next.clone().add(p1Top2Unit.clone().multiplyScalar(0.9 * maxDist));
-                filled.push(next);
+        let filledOutline = _.mapValues(sheet.outline, (edge) => {
+            let filled = [];
+            for (let i = 0; i < edge.length-1; i++) {
+                let p1 = edge[i];
+                let p2 = edge[i + 1];
+                filled.push(p1);
+                let next = p1;
+                let p1Top2Unit = p2.clone().sub(p1).normalize();
+                while (next.distanceToSquared(p2) > maxDist * maxDist) {
+                    next = next.clone().add(p1Top2Unit.clone().multiplyScalar(0.9 * maxDist));
+                    filled.push(next);
+                }
             }
-        }
-        return Object.assign({}, sheet, { outline: filled });
+            return filled;
+        });
+
+        return Object.assign({}, sheet, { outline: filledOutline });
     };
 
     const lineFunction = d3.line()
@@ -158,25 +169,29 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: 0.01 }) {
         .y(function(d) { return d.y; });
 
     const outlineAndSeam = (svg, sheet) => {
-        let { outline, seam } = addSeamAllowance(fillOutline(sheet, 0.005));
+        let { outline, seams } = addSeamAllowances(fillOutline(sheet, 0.005));
         const svgContainer = d3.select(svg)
-                .attr("width", 1600)
-                .attr("height", 1600)
+                .attr("width", "220mm")
+                .attr("height","220mm")
                 .attr("viewBox", "-1.1 -1.1 2.2 2.2");
 
-        svgContainer.append("path")
-            .attr("d", lineFunction(outline))
-            .attr("stroke", "black")
-            .attr("stroke-width", 0.001)
-            .attr("fill", "none");
+        _.each(outline, (edge) => {
+            svgContainer.append("path")
+                .attr("d", lineFunction(edge))
+                .attr("stroke", "black")
+                .attr("stroke-width", 0.001)
+                .attr("fill", "none");
+        });
 
-        svgContainer.append("path")
-            .attr("d", lineFunction(seam))
-            .style("stroke-dasharray", ("0.004, 0.004"))
-            .attr("class", "line")
-            .attr("stroke", "black")
-            .attr("stroke-width", 0.001)
-            .attr("fill", "none");
+        _.each(seams, (seam) => {
+            svgContainer.append("path")
+                .attr("d", lineFunction(seam))
+                .style("stroke-dasharray", ("0.004, 0.004"))
+                .attr("class", "line")
+                .attr("stroke", "black")
+                .attr("stroke-width", 0.001)
+                .attr("fill", "none");
+        });
 
         return svgContainer;
     };
@@ -199,6 +214,14 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: 0.01 }) {
         document.body.appendChild(svg);
     };
 
+    const bottomPanelSVG = (sheet, index) => {
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        const svgContainer = outlineAndSeam(svg, sheet);
+        addSheetLabel('bottom-panel-' + index, svgContainer);
+        let svgString = (new window.XMLSerializer).serializeToString(svg);
+        document.body.appendChild(svg);
+    };
+
     const profileSVG = (sheet, index) => {
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         const svgContainer = outlineAndSeam(svg, sheet);
@@ -206,7 +229,7 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: 0.01 }) {
 
         bridle.wingConnections.map(({ xPos, foils }) => {
             if (_.includes(foils, index)) {
-                let pos = sheet.outline[foilBottomPointIndex(xPos, sheet.outline)];
+                let pos = sheet.outline.profile[foilBottomPointIndex(xPos, sheet.outline.profile)];
                 var circles = svgContainer
                         .append("circle")
                         .attr('cx', pos.x)
@@ -223,6 +246,6 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: 0.01 }) {
     let sheets = project(wing);
     _.each(sheets.topSheets, topPanelSVG);
     _.each(sheets.foilSheets, profileSVG);
-//    _.each(sheets.bottomSheets, sheetToSVG);
+    _.each(sheets.bottomSheets, bottomPanelSVG);
 }
 
