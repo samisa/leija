@@ -10,7 +10,7 @@ export const testBridleSpec = {
     towPoint: 0.34, //percent back from center le. b-bridle position
     wingConnections: [
         {  // a-lines
-            xPos: 0.0,
+            xPos: 0.05,
             foils: [0,1,2,3,4,5,6,7]
         },
         {  // b-lines
@@ -159,12 +159,13 @@ export function initNetForSolver(bridleSpec, wing) {
     });
 
     //links for them:
-    let line0Rows = _.map(node0Rows, (nodeRow) => {
+    let line0Rows = _.map(node0Rows, (nodeRow, rowIndex) => {
         return _.map(nodeRow, (node, index) => {
             return {
 //                length: bridleSpec.wingLineLength,
                 nodes: [ node ],
-                weight: 1/(1+3/(index+1))
+                weight: 1/(1+3/(index+1)),
+                name: `cascade-0-row-${rowIndex}-line-${index}`
             };
         });
     });
@@ -179,11 +180,12 @@ export function initNetForSolver(bridleSpec, wing) {
     });
 
     //links for them:
-    let line1Rows = _.map(node1Rows, (nodeRow) => {
+    let line1Rows = _.map(node1Rows, (nodeRow, rowIndex) => {
         return _.map(nodeRow, (node, index) => {
             return {
                 nodes: [ node ],
-                weight: 1/(1+2/(index+1))
+                weight: 1/(1+2/(index+1)),
+                name: `cascade-1-row-${rowIndex}-line-${index}`
                 //length: bridleSpec.cascade1Length
             };
         });
@@ -202,13 +204,13 @@ export function initNetForSolver(bridleSpec, wing) {
     let node3c = { position: new THREE.Vector3().set(0, 0, 0) };
     let barEndNode = { position: new THREE.Vector3().set(0, bridleSpec.barLength/2, -bridleSpec.mainLineLength - 3), fixed: true };
     let barMidNode = { position: new THREE.Vector3().set(0, 0, -bridleSpec.mainLineLength - 3), fixed: true };
-    let line2a = { nodes: [ node2s[0], node3a ] };
-    let line2b = { nodes: [ node2s[1], node3b ] };
-    let line2c = { nodes: [ node2s[2], node3c ] };
-    let pulleyLinea = { nodes: [ node3b, node3a ] };
-    let pulleyLineb = { nodes: [ node3b, node3c ] };
-    let primaryLine = { nodes: [ node3a, barMidNode ], length: bridleSpec.mainLineLength };
-    let brakeLine = { nodes: [ node3c, barEndNode ], length: bridleSpec.mainLineLength };
+    let line2a = { nodes: [ node2s[0], node3a ], name: 'cascade-2-line-a' };
+    let line2b = { nodes: [ node2s[1], node3b ], name: 'cascade-2-line-b' };
+    let line2c = { nodes: [ node2s[2], node3c ], name: 'cascade-2-line-c' };
+    let pulleyLinea = { nodes: [ node3b, node3a ], name: 'pulley-line-a' };
+    let pulleyLineb = { nodes: [ node3b, node3c ], name: 'pulley-line-b' };
+    let primaryLine = { nodes: [ node3a, barMidNode ], length: bridleSpec.mainLineLength, name: 'primary-line' };
+    let brakeLine = { nodes: [ node3c, barEndNode ], length: bridleSpec.mainLineLength, name: 'brake-line' };
     //finally concatenate links and nodes:
     return {
         nodes: _.flatten([_.flatten(node0Rows), _.flatten(node1Rows), node2s,
@@ -218,7 +220,13 @@ export function initNetForSolver(bridleSpec, wing) {
     };
 }
 
-
+export function printBridle(bridle) {
+    return bridle.links.map(({ name, nodes }) => {
+        let rel = new THREE.Vector3().subVectors(nodes[0].position, nodes[1].position);
+        let l = rel.length();
+        return `${name}: ${l}`;
+    }).join('\n');
+}
 /*
 ----------------------
 . ---------------------  0-nodes, fixed on kite

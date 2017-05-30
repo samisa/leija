@@ -50,7 +50,23 @@ var createSheets = state.actionCreator(() => {
     return function(dispatch, getState) {
         let wing = getState().wing;
         let bridle = getState().bridle;
-        planSVGS({ bridle, wing });
+        let svgs = planSVGS({ bridle, wing });
+        let path = dialog.showOpenDialog({ title: 'Select folder to save into', properties: [  'openDirectory' ]})[0];
+        if (path === undefined || !fs.lstatSync(path).isDirectory()) {
+            return;
+        }
+
+        svgs.map((svg, index) => {
+            const fileName = index + '.svg';
+
+            fs.writeFile(path + '/' + fileName, svg, function (err) {
+                if (err){
+                    notification.error("An error ocurred creating the file "+ err.message);
+                }
+
+                notification.log("The file has been succesfully saved");
+            });
+        });
     };
 });
 

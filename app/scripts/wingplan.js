@@ -231,7 +231,7 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
         const svgContainer = outlineAndSeam(svg, sheet);
         addSheetLabel('top-panel-' + index, svgContainer);
         let svgString = (new window.XMLSerializer).serializeToString(svg);
-        document.body.appendChild(svg);
+        return svg;
     };
 
     const bottomPanelSVG = (sheet, index) => {
@@ -239,7 +239,7 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
         const svgContainer = outlineAndSeam(svg, sheet);
         addSheetLabel('bottom-panel-' + index, svgContainer);
         let svgString = (new window.XMLSerializer).serializeToString(svg);
-        document.body.appendChild(svg);
+        return svg;
     };
 
     const profileSVG = (sheet, index) => {
@@ -254,18 +254,28 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
                         .append("circle")
                         .attr('cx', pos.x)
                         .attr('cy', pos.y)
-                        .attr("r", 0.005)
+                        .attr("r", 0.0025)
                         .style("fill", 'black');
             }
         });
 
+        let pos = sheet.outline.profile[foilBottomPointIndex(0, sheet.outline.profile)]; //point where top sheet ends....
+        var circles = svgContainer
+                .append("circle")
+                .attr('cx', pos.x)
+                .attr('cy', pos.y)
+                .attr("r", 0.0025)
+                .style("fill", 'black');
+
         let svgString = (new window.XMLSerializer).serializeToString(svg);
-        document.body.appendChild(svg);
+        return svg;
     };
 
     let sheets = project(wing);
-    _.each(sheets.topSheets, topPanelSVG);
-    _.each(sheets.foilSheets, profileSVG);
-    _.each(sheets.bottomSheets, bottomPanelSVG);
+    let svgs = [...sheets.topSheets.map(topPanelSVG),
+                ...sheets.foilSheets.map(profileSVG),
+                ...sheets.bottomSheets.map(bottomPanelSVG)];
+
+    return svgs.map((svg) => svg.outerHTML );
 }
 
