@@ -40,9 +40,9 @@ function foilBottomPoint(offset, foil) {
 }
 
 function createBridleObject(wing, bridleSpec) {
-    let bridle = bridles.initNetForSolver(bridleSpec, wing);
+    let bridle = bridles.init3lineNetForSolver(bridleSpec, wing);
     bridles.solveBridle(bridle);
-
+    console.log(bridles.printBridle(bridle));
     var material = new THREE.LineBasicMaterial({ color: 0xff0011 });
     let lines = _(bridle.links).map((link) => {
         return _.map(link.nodes, (node) => {

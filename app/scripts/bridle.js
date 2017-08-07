@@ -88,7 +88,7 @@ export function foilBottomPointIndex(offset, foil) {
 // fixed length links are close enough to desired lengths
 export function solveBridle(net) {
     let k = 1;
-    let kFree = k / 3;
+    let kFree = k;
     let maxDeltaSqr = 0;
     let maxDeltaVSqr = 0;
 
@@ -98,15 +98,18 @@ export function solveBridle(net) {
         let pos1 = link.nodes[1].position;
         let L = link.length;
         let rel = new THREE.Vector3().subVectors(pos1, pos0);
-        let d2 = rel.lengthSq();
+        let d2 = rel.length();
         let theK = L === undefined ? kFree : k;
         theK = link.weight === undefined ? theK : link.weight * theK;
         return L === undefined ?
             rel.multiplyScalar(theK) :
-            rel.multiplyScalar(theK*(Math.max(d2 - L*L, 0)));
+            rel.multiplyScalar(theK*(Math.max(d2 - L, 0)));
     };
 
     function iterate() {
+        maxDeltaSqr = 0;
+        maxDeltaVSqr = 0;
+
         // zeroize forces on nodes
         _(net.nodes).filter((node) => { return !node.fixed; }).each((node) => {
             node.force = new THREE.Vector3().set(0, 0, 0);
@@ -119,8 +122,7 @@ export function solveBridle(net) {
            link.nodes[1].fixed || link.nodes[1].force.sub(force);
        });
 
-        maxDeltaSqr = 0;
-        maxDeltaVSqr = 0;
+        /////l
 
         _(net.nodes).filter((node) => { return !node.fixed; }).each((node) => {
             node.velocity = node.velocity || (new THREE.Vector3().set(0, 0, 0));
@@ -128,22 +130,89 @@ export function solveBridle(net) {
             node.velocity.multiplyScalar(0.7);
             if (node.yFixed) { node.velocity.y = 0; }
             node.position.add(new THREE.Vector3().copy(node.velocity).multiplyScalar(0.01));
-            let deltaSq = node.velocity.lengthSq();
-            maxDeltaSqr = Math.max(deltaSq, maxDeltaSqr);
-       });
+            let deltaVSq = node.velocity.lengthSq();
+            maxDeltaVSqr = Math.max(deltaVSq, maxDeltaVSqr);
+        });
+
+        // _(net.links).each((link) => {
+        //     if (!link.length) { return; }
+        //     let pos0 = link.nodes[0].position;
+        //     let pos1 = link.nodes[1].position;
+        //     let L = link.length;
+        //     let rel = new THREE.Vector3().subVectors(pos1, pos0);
+        //     let d2 = L-rel.length();
+        //     d2 = d2*d2;
+        //     maxDeltaSqr = Math.max(d2, maxDeltaSqr);
+        // });
+
     };
 
     do {
         do {
             iterate();
-        } while (maxDeltaSqr > 0.000001);
+        } while (maxDeltaVSqr > 0.000001);
 
+        console.log(maxDeltaSqr);
         kFree /= 2;
-        console.log(kFree);
+        //console.log(kFree);
     } while(kFree > 0.0001);
 }
 
-export function initNetForSolver(bridleSpec, wing) {
+
+
+
+// let fixedLengths = [[], [], []];
+// fixedLengths[0][0] = 0.46108148756545436;
+// fixedLengths[0][1] = 0.4062909065485605;
+// fixedLengths[0][2] = 0.4348278240736058;
+// fixedLengths[0][3] = 0.3841251793641871;
+// fixedLengths[0][4] = 0.407576027043698;
+// fixedLengths[0][5] = 0.35996026882620474;
+// fixedLengths[0][6] = 0.38551373493374963;
+// fixedLengths[0][7] = 0.3544586367385954;
+
+// fixedLengths[1][0] = 0.37814663628671874;
+// fixedLengths[1][1] = 0.2984787531704365;
+// fixedLengths[1][2] = 0.33756945560151036;
+// fixedLengths[1][3] = 0.28363942291274175;
+// fixedLengths[1][4] = 0.3044807770130088;
+// fixedLengths[1][5] = 0.2785326544274991;
+// fixedLengths[1][6] = 0.28924770259340066;
+// fixedLengths[1][7] = 0.2854142451901452;
+
+// fixedLengths[2][0] = 0.5203898296448588;
+// fixedLengths[2][1] = 0.4607758335754818;
+// fixedLengths[2][2] = 0.4682575619855631;
+// fixedLengths[2][3] = 0.4018966878412104;
+// fixedLengths[2][4] = 0.4275360441773012;
+// fixedLengths[2][5] = 0.35495708621875843;
+// fixedLengths[2][6] = 0.39218293646651214;
+// fixedLengths[2][7] = 0.24863048432172394;
+/*
+--------------------------------------------
+cascade-1-row-0-line-0: 0.9940888924338216
+cascade-1-row-0-line-1: 0.9073086126387557
+cascade-1-row-0-line-2: 0.815844935450249
+cascade-1-row-0-line-3: 0.712875180472101
+cascade-1-row-1-line-0: 0.8363292145947562
+cascade-1-row-1-line-1: 0.7129511986402148
+cascade-1-row-1-line-2: 0.6154063860053025
+cascade-1-row-1-line-3: 0.5341212381528352
+cascade-1-row-2-line-0: 1.0371802989003935
+cascade-1-row-2-line-1: 0.9345851422532443
+cascade-1-row-2-line-2: 0.8130454004458643
+cascade-1-row-2-line-3: 0.6401964670477147
+--------------------------------------------
+cascade-2-line-a: 1.6533449345269837
+cascade-2-line-b: 1.2597140792001222
+cascade-2-line-c: 1.6415141079625144
+pulley-line-a: 0.697391934498364
+pulley-line-b: 0.6533432051828513
+primary-line: 20.000014048549264
+brake-line: 20.00001416123539
+*/
+
+export function init3lineNetForSolver(bridleSpec, wing) {
     // nodes for fixed kite points:
     let foils = wing3d.wingSpecToPoints(wing);
     let node0Rows = _.map(bridleSpec.wingConnections, (connectionRow) => {
@@ -162,9 +231,9 @@ export function initNetForSolver(bridleSpec, wing) {
     let line0Rows = _.map(node0Rows, (nodeRow, rowIndex) => {
         return _.map(nodeRow, (node, index) => {
             return {
-//                length: bridleSpec.wingLineLength,
+                //length: fixedLengths[rowIndex][index],
                 nodes: [ node ],
-                weight: 1/(1+3/(index+1)),
+                weight: 1/(1+3/(index+1))* 0.5,
                 name: `cascade-0-row-${rowIndex}-line-${index}`
             };
         });
@@ -184,26 +253,32 @@ export function initNetForSolver(bridleSpec, wing) {
         return _.map(nodeRow, (node, index) => {
             return {
                 nodes: [ node ],
-                weight: 1/(1+2/(index+1)),
+                weight: 1/(1+2/(index+1))/2,
                 name: `cascade-1-row-${rowIndex}-line-${index}`
                 //length: bridleSpec.cascade1Length
             };
         });
     });
 
+    const FIXED_NODE2S = [
+        { position: new THREE.Vector3().set(0.2, 0.2, -1.5), yFixed: true },//front
+        { position: new THREE.Vector3().set(0.4, 0.3, -1.6), yFixed: true },// mid
+        { position: new THREE.Vector3().set(0.7, 0.5, -1.7)/*, yFixed: true*/ } //back
+    ];
     //create 2nd cascade nodes and add to links:
-    let node2s = _.map(line1Rows, (row) => {
-        let node = { position: new THREE.Vector3().set(0, 0, 0) };
+    let node2s = _.map(line1Rows, (row, i) => {
+//        let node = { position: new THREE.Vector3().set(0, 0, 0) };
+        let node = FIXED_NODE2S[i];
         _(row).each((link) => { link.nodes[1] = node; });
         return node;
     });
 
 
-    let node3a = { position: new THREE.Vector3().set(0, 0, 0), yFixed: true };
+    let node3a = { position: new THREE.Vector3().set(0, 0, 0)/*, yFixed: true*/ };
     let node3b = { position: new THREE.Vector3().set(0, 0, 0) };
     let node3c = { position: new THREE.Vector3().set(0, 0, 0) };
-    let barEndNode = { position: new THREE.Vector3().set(0, bridleSpec.barLength/2, -bridleSpec.mainLineLength - 3), fixed: true };
-    let barMidNode = { position: new THREE.Vector3().set(0, 0, -bridleSpec.mainLineLength - 3), fixed: true };
+    let barEndNode = { position: new THREE.Vector3().set(0, bridleSpec.barLength/2, -bridleSpec.mainLineLength - 2.5), fixed: true };
+    let barMidNode = { position: new THREE.Vector3().set(0, 0, -bridleSpec.mainLineLength - 2.5), fixed: true };
     let line2a = { nodes: [ node2s[0], node3a ], name: 'cascade-2-line-a' };
     let line2b = { nodes: [ node2s[1], node3b ], name: 'cascade-2-line-b' };
     let line2c = { nodes: [ node2s[2], node3c ], name: 'cascade-2-line-c' };
@@ -220,11 +295,12 @@ export function initNetForSolver(bridleSpec, wing) {
     };
 }
 
+
 export function printBridle(bridle) {
     return bridle.links.map(({ name, nodes }) => {
         let rel = new THREE.Vector3().subVectors(nodes[0].position, nodes[1].position);
         let l = rel.length();
-        return `${name}: ${l}`;
+        return `${name}: ${Math.round(l*100).toFixed()}`;
     }).join('\n');
 }
 /*
