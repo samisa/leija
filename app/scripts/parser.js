@@ -4,17 +4,17 @@ import * as path from 'path';
 import _ from 'lodash';
 
 const XFLR5_KEYS = [
-    'y',       //distance of section to middle. [m] IS IT Y coord or along rotated y???????
+    'y',        // (y,z)-projected path distance of foil's center to middle. (path along rotated and translated sections :)) [m]
     'chord',    // chord length in [m]
     'offset',   // how much leading edge of section is back from le of middle section. [m]
-    'dihedral', // angle to next section. Negative is downwards. [degrees]
-    'twist',    // currently unused
+    'dihedral', // angle of the section. Negative is downwards. [degrees]
+    'twist',    // twist of foil, around quarter chord point
     'xpanels',  // unused
     'ypanels',  // unused
     'xdist',    // unused
     'ydist',    // unused
-    'foil'
-];     // path to foil definition file
+    'foil'      // path to foil definition file
+];
 
 
 function parseXFLR5Wing(fileName) {
@@ -35,6 +35,7 @@ function parseXFLR5Wing(fileName) {
 
 
 // Aitfoil data points are assumed follow the standard: start form trailing edge (large x, usually 1.0) circulate ccw (i.e. top first then bottom)
+// also data is assumed to be already normalized: front tip at (0,0), chord length 1.0
 let parseFoil = _.memoize((fileName) => {
     let lines = fs.readFileSync(fileName).toString().split('\n');
     lines.shift(); //first row is the foil name

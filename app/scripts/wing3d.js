@@ -1,27 +1,37 @@
 import _ from 'lodash';
 import * as THREE from 'three';
 
-function wingSpecToPoints(wing) {
-    let  { foilDefs, sections } = wing;
-    // 1. immerse each sections' foilcoordinates to 3d space, and flatten eaxh foil to 3*nfoilpoints dimensional array
-    //  let ydist = 0;
+function wingSpecToPoints(wingSpec) {
+    let  { foilDefs, sections } = wingSpec;
+    // 1. immerse each sections' foilcoordinates to 3d space, and flatten each foil to 3*nfoilpoints dimensional array
+    // foil fornt tip should then be at (0,0,0)
     let foils = sections.map((section) => {
         //        ydist = ydist + section.y;
         return _.flatten(foilDefs[section.foil].map((point) => { return [point[0], 0, point[1]]; }));
     });
 
     // 2. construct transformations for each section:
-    // section's dihedral determines angle of it's outer foil.
+    // Section defines transformations of a tunnel's inner foil, except for dihedral which is the angle of (and to) the next foil.
     // For each foil:
-    //     apply scale and x offset to foil
+    //     apply twist + scale and x offset to foil
     //     add translation by y offset to previous transformation
     //     apply previous transformation (initially unit) to foil
     //     take translation part of previous transformation
     //     add dihedral rotation
     //     set as previous trasnformation
+
     let previousTransformation = new THREE.Matrix4();
     var previousY = 0;
     _.map(sections, (section, index) => {
+        let toTwistCenter = new THREE.Matrix4().makeTranslation(0.25, 0, 0);
+        let twistRot = new THREE.Matrix4().makeRotationY(-section.twist * Math.PI / 180);
+        let andBack = new THREE.Matrix4().getInverse(toTwistCenter);
+        let twist = new THREE.Matrix4()
+                .multiply(toTwistCenter)
+                .multiply(twistRot)
+                .multiply(andBack);
+        twist.applyToVector3Array(foils[index]);
+
         let scale = new THREE.Matrix4().makeScale(section.chord, section.chord, section.chord);
         scale.applyToVector3Array(foils[index]);
 
@@ -42,9 +52,9 @@ function wingSpecToPoints(wing) {
     return _.map(foils, (foil) => { return _.chunk(foil, 3).map((pt) => { return new THREE.Vector3().fromArray(pt); }); });
 };
 
-function createMesh(wing) {
+function createMesh(wingSpec) {
     let wingGeometry = new THREE.Geometry();
-    let foils = wingSpecToPoints(wing);
+    let foils = wingSpecToPoints(wingSpec);
 
     _.each(foils, (foil) => {
         var x = _;
@@ -53,7 +63,7 @@ function createMesh(wing) {
         });
     });
 
-    //now assume each foil has same amount of vertices arranged in similar order:
+    //NOTE: this assumes each foil has same amount of vertices arranged in similar order:
     let foilLength = foils[0].length;
     for (var i = 0; i < foils.length - 1; i++) {
         let n = i * foilLength;

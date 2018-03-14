@@ -37,7 +37,11 @@ const BridleEditor = React.createClass({
             <div className='bridle-params-editor'>
                 {
                     bridleDefinition ? _.map(INPUTS, (input) => {
-                        return <Input handleOnChange={ this.inputHandler(input) } value={ bridleDefinition[input] }/>;
+                        return (
+                            <label>
+                              { input }
+                              <Input handleOnChange={ this.inputHandler(input) } value={ bridleDefinition[input] }/>
+                            </label>);
                     }) : null
                 }
                 {
