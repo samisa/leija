@@ -10,8 +10,12 @@ import WingEditor from  './WingEditor';
 import BridleEditor from  './BridleEditor';
 import actions from '../actions';
 
-let App = React.createClass({
-    render: function() {
+class AppComponent extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
         let { wingObject, wingDefinition, bridleObject, bridleDefinition } = this.props;
 
         return (
@@ -23,16 +27,16 @@ let App = React.createClass({
             </div>
         );
     }
-});
+};
 
 let selectWing = ({ wing } = {}) => { return wing; };
 let selectBridle = ({ bridle } = {}) => { return bridle; };
 
-App = connect(createSelector(selectWing, selectBridle, (wing, bridle) => {
+const App = connect(createSelector(selectWing, selectBridle, (wing, bridle) => {
     if (!wing) { return {}};
     let wingObject = createMesh(wing); //TODO: shoud not be done on bridle-only changes
     let bridleObject = createBridleObject(wing, bridle);
     return { wingObject, wingDefinition: wing , bridleObject, bridleDefinition: bridle }
-}))(App);
+}))(AppComponent);
 
 export default App;

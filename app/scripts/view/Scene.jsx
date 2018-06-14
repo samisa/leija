@@ -5,14 +5,19 @@ import * as THREE from 'three';
 import Foo from 'three-orbit-controls';
 let OrbitControls = Foo(THREE);
 
-const Scene = React.createClass({
-    onWindowResize: function() {
+class Scene extends React.Component {
+    constructor(props) {
+        super(props);
+        _.bindAll(this, 'onWindowResize', 'animate');
+    }
+
+    onWindowResize() {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize( window.innerWidth, window.innerHeight );
-    },
+    }
 
-    componentDidMount: function() {
+    componentDidMount() {
         this.camera, controls, scene, renderer;
         this.renderer = new THREE.WebGLRenderer();
         this.scene = new THREE.Scene();
@@ -43,7 +48,7 @@ const Scene = React.createClass({
 
         window.addEventListener( 'resize', this.onWindowResize, false );
         this.animate();
-    },
+    }
 
     componentWillReceiveProps(newProps) {
         let { wingObject, bridleObject } = newProps;
@@ -60,30 +65,29 @@ const Scene = React.createClass({
             _.each(bridleObject.lines, (line) => { this.scene.add(line); });
             this.bridleObject = bridleObject;
         }
-    },
+    }
 
-    animate: function() {
+    animate() {
         requestAnimationFrame( this.animate );
         this.controls.update(); // required if controls.enableDamping = true, or if controls.autoRotate = true
         this.renderer.render( this.scene, this.camera );
-    },
+    }
 
-    componentWillUnmount: function() {
+    componentWillUnmount() {
         window.removeEventListener('resize', this.onWindowResize);
-    },
+    }
 
-    shouldComponentUpdate: function() {
+    shouldComponentUpdate() {
         return false;
-    },
+    }
 
-    render: function() {
+    render() {
         let { wingObject } = this.props;
 
         return (
             <div ref="container" className='threeCanvasContainer'/>
         );
-
     }
-});
+}
 
 export default Scene;

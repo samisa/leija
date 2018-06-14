@@ -9,28 +9,30 @@ import actions from '../actions';
 const INPUTS = ['mainLineLength', 'barLength', 'towPoint', 'wingLineLength'];
 //const WINGCONNECTIONINPUTS = {'wingConnections' : { 'xPos' } };
 
-const BridleEditor = React.createClass({
-    getInitialState: function() {
-        return {};
-    },
+class BridleEditor extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {};
+        _.bindAll(this, 'applyChanges', 'inputHandler');
+    }
 
-    inputHandler: function(input) {
+    inputHandler(input) {
         let that = this;
         return (evt) => {
             that.state.bridleDefinition[input] = evt.target.value;
             that.setState(that.state);
         };
-    },
+    }
 
-    componentWillReceiveProps: function(newProps) {
+    componentWillReceiveProps(newProps) {
         this.setState({ bridleDefinition: _.clone(newProps.bridleDefinition) });
-    },
+    }
 
-    applyChanges: function() {
+    applyChanges() {
         actions.updateBridle(_.clone(this.state.bridleDefinition));
-    },
+    }
 
-    render: function() {
+    render() {
         let { bridleDefinition } = this.state;
 
         return (
@@ -55,6 +57,6 @@ const BridleEditor = React.createClass({
             </div>
         );
     }
-});
+};
 
 export default BridleEditor;
