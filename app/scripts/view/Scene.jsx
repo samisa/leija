@@ -20,6 +20,7 @@ class Scene extends React.Component {
     componentDidMount() {
         this.camera, controls, scene, renderer;
         this.renderer = new THREE.WebGLRenderer();
+        //this.renderer.shadowMap.enabled = true;
         this.scene = new THREE.Scene();
         this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000 );
         this.controls = new OrbitControls(this.camera, this.renderer.domElement);

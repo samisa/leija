@@ -34,7 +34,7 @@ function parseXFLR5Wing(fileName) {
 }
 
 
-// Aitfoil data points are assumed follow the standard: start form trailing edge (large x, usually 1.0) circulate ccw (i.e. top first then bottom)
+// Airfoil data points are assumed follow the standard: start form trailing edge (large x, usually 1.0) circulate ccw (i.e. top first then bottom)
 // also data is assumed to be already normalized: front tip at (0,0), chord length 1.0
 let parseFoil = _.memoize((fileName) => {
     let lines = fs.readFileSync(fileName).toString().split('\n');

@@ -30,7 +30,7 @@
     "redux": "^3.6.0",
     "redux-thunk": "^2.1.0",
     "reselect": "^2.5.4",
-    "three": "~0.81.2"
+    "three": "0.93.0"
   },
   "author": "",
   "license": "BSD-2-Clause"

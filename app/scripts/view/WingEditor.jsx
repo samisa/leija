@@ -32,7 +32,7 @@ class WingEditor extends React.Component {
 
     paramInputHandler(paramPath) {
         return (evt) => {
-            _.set(this.state.wingDefinition, paramPath, value);
+            _.set(this.state.wingDefinition, paramPath, evt.target.value);
             this.setState(this.state);
         };
     }
