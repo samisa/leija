@@ -68,17 +68,22 @@ function createMesh(wingSpec) {
     ) || [];
 
     const foils = wingSpecToPoints(wingSpec);
+    const foilLength = foils[0].length;
+    const lePointIndex = foilLeadingEdgePointIndex(foils[0]);
 
-    let wingGeometry = new THREE.Geometry();
+    const topSkinGeometry = new THREE.Geometry();
+    const bottomSkinGeometry = new THREE.Geometry();
+
     _.each(foils, (foil) => {
-        _(foil).each((p) => {
-            wingGeometry.vertices.push(p);
+        _(foil).each((p, index) => {
+            topSkinGeometry.vertices.push(p);
+            bottomSkinGeometry.vertices.push(p);
+//            if(p <= lePointIndex) { topSkinGeometry.vertices.push(p); }
+  //          if(p >= lePointIndex) { bottomSkinGeometry.vertices.push(p); }
         });
     });
 
     //NOTE: this assumes each foil has same amount of vertices arranged in similar order:
-    let foilLength = foils[0].length;
-    const lePointIndex = foilLeadingEdgePointIndex(foils[0]);
     for (var i = 0; i < foils.length - 1; i++) {
         const openingDist = sections[i].chord * opening;
         const chord1LEPoint = foils[i][lePointIndex];
@@ -92,20 +97,26 @@ function createMesh(wingSpec) {
 
             if (faceWithinOpening) { continue; }
 
-            wingGeometry.faces.push(new THREE.Face3(    n + j,              n + j + 1, n + j + foilLength));
-            wingGeometry.faces.push(new THREE.Face3(n + j + 1, n + j + foilLength + 1, n + j + foilLength));
+            const skinGeometry = j <= lePointIndex ? topSkinGeometry : bottomSkinGeometry;
+            skinGeometry.faces.push(new THREE.Face3(    n + j,              n + j + 1, n + j + foilLength));
+            skinGeometry.faces.push(new THREE.Face3(n + j + 1, n + j + foilLength + 1, n + j + foilLength));
         }
     }
 
-    let material =  new THREE.MeshPhongMaterial( { color: 0xffffff, shading: THREE.FlatShading,  side: THREE.DoubleSide } );
+    const topMaterial =  new THREE.MeshPhongMaterial( { color: 0xddddff, shading: THREE.FlatShading,  side: THREE.DoubleSide } );
+    const bottomMaterial =  new THREE.MeshPhongMaterial( { color: 0xffccaa, shading: THREE.FlatShading,  side: THREE.DoubleSide } );
 
-    let rightSide = wingGeometry;
-    let leftSide = wingGeometry.clone();
-    leftSide.applyMatrix(new THREE.Matrix4().makeScale(1,-1, 1));
-    let leftMesh = new THREE.Mesh( leftSide, material );
-    let rightMesh = new THREE.Mesh( rightSide, material );
-    let wingObject = new THREE.Object3D();
-    wingObject.add(rightMesh, leftMesh);
+    const wingObject = new THREE.Object3D();
+    [ { geometry: topSkinGeometry, material: topMaterial },
+      { geometry: bottomSkinGeometry, material: bottomMaterial }
+    ].map(({ geometry, material }) => {
+          const leftSide = geometry.clone();
+          leftSide.applyMatrix(new THREE.Matrix4().makeScale(1,-1, 1));
+          let leftMesh = new THREE.Mesh(leftSide, material);
+          let rightMesh = new THREE.Mesh(geometry, material);
+          wingObject.add(rightMesh, leftMesh);
+      });
+
     return wingObject;
 }
 
