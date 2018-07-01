@@ -8,29 +8,37 @@ import * as parser from  './parser';
 import { planSVGS } from './wingplan';
 import * as bridles from './bridle';
 
-function saveKite() {
-    let path = dialog.showSaveDialog();
-    if (path === undefined) {
-        return;
-    }
+const saveKite = state.actionCreator(() => {
+    return function(dispatch, getState) {
+        const wing = getState().wing;
+        const bridle = getState().bridle;
+        const name = getState().name;
 
-    fs.writeFile(path, 'dddvdf', function (err) {
-        if (err){
-            notification.error("An error ocurred creating the file "+ err.message);
+
+        let path = dialog.showSaveDialog();
+        if (path === undefined) {
+            return;
         }
 
-        notification.log("The file has been succesfully saved");
-    });
-}
+        fs.writeFile(path, JSON.stringify({ wing, bridle, name }), function (err) {
+            if (err){
+                notification.error("An error ocurred creating the file "+ err.message);
+            }
+
+            notification.log("The file has been succesfully saved");
+        });
+    };
+});
 
 var openKite = state.actionCreator(() => {
     return function(dispatch, getState) {
         let file = dialog.showOpenDialog();
         if (!file) { return; }
         file = file[0];
-        let wing = parser.parse(file);
-        dispatch({ type: 'SET_BRIDLE_PARAMS', bridle: bridles.testBridleSpec });
+        const { wing, bridle, name } = parser.parse(file);
+        dispatch({ type: 'SET_BRIDLE_PARAMS', bridle: bridle || bridles.testBridleSpec });
         dispatch({ type: 'SET_WING_PARAMS', wing });
+        dispatch({ type: 'SET_KITE_NAME', name });
     };
 });
 

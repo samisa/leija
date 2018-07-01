@@ -16,6 +16,16 @@ const XFLR5_KEYS = [
     'foil'      // path to foil definition file
 ];
 
+// Airfoil data points are assumed follow the standard: start form trailing edge (large x, usually 1.0) circulate ccw (i.e. top first then bottom)
+// also data is assumed to be already normalized: front tip at (0,0), chord length 1.0
+let parseFoil = _.memoize((fileName) => {
+    let lines = fs.readFileSync(fileName).toString().split('\n');
+    lines.shift(); //first row is the foil name
+    lines = _.compact(lines);
+    return _.map(lines, (line) => {
+        return _.map(line.trim().split(/\s+/), parseFloat);
+    });
+});
 
 function parseXFLR5Wing(fileName) {
     let dir = path.dirname(fileName);
@@ -30,23 +40,19 @@ function parseXFLR5Wing(fileName) {
         foilDefs[section.foil] = parseFoil(section.foil);
         return section;
     });
-    return { sections, foilDefs };
+    return { wing: { sections, foilDefs } };
 }
 
-
-// Airfoil data points are assumed follow the standard: start form trailing edge (large x, usually 1.0) circulate ccw (i.e. top first then bottom)
-// also data is assumed to be already normalized: front tip at (0,0), chord length 1.0
-let parseFoil = _.memoize((fileName) => {
-    let lines = fs.readFileSync(fileName).toString().split('\n');
-    lines.shift(); //first row is the foil name
-    lines = _.compact(lines);
-    return _.map(lines, (line) => {
-        return _.map(line.trim().split(/\s+/), parseFloat);
-    });
-});
+const parseJsonKite = (fileName) => {
+    const dir = path.dirname(fileName);
+    const obj = JSON.parse(fs.readFileSync(fileName, 'utf8'));
+    return obj;
+};
 
 function parse(fileName) {
-    return parseXFLR5Wing(fileName);
+    return fileName.endsWith('xwimp') ?
+        parseXFLR5Wing(fileName) :
+        parseJsonKite(fileName);
 };
 
 export { parse };
