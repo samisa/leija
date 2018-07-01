@@ -49,6 +49,8 @@ const parseJsonKite = (fileName) => {
     return obj;
 };
 
+
+//TODO: separate action for import/export xflr5 data and save/open json 
 function parse(fileName) {
     return fileName.endsWith('xwimp') ?
         parseXFLR5Wing(fileName) :

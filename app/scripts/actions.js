@@ -38,7 +38,7 @@ var openKite = state.actionCreator(() => {
         const { wing, bridle, name } = parser.parse(file);
         dispatch({ type: 'SET_BRIDLE_PARAMS', bridle: bridle || bridles.testBridleSpec });
         dispatch({ type: 'SET_WING_PARAMS', wing });
-        dispatch({ type: 'SET_KITE_NAME', name });
+        dispatch({ type: 'SET_KITE_NAME', name }); //TODO...
     };
 });
 
