@@ -31,8 +31,8 @@ class WingEditor extends React.Component {
     }
 
     paramInputHandler(paramPath) {
-        return (evt) => {
-            _.set(this.state.wingDefinition, paramPath, evt.target.value);
+        return (val) => {
+            _.set(this.state.wingDefinition, paramPath, val);
             this.setState(this.state);
         };
     }
@@ -63,7 +63,7 @@ class WingEditor extends React.Component {
                     <Input type={"boolean"} label={ 'Closed' } value={ intakes.closed } handleOnChange={ this.paramInputHandler('intakes.closed') }/>
                     <Input label={ 'Sections' } value={ intakes.sections } handleOnChange={ this.paramInputHandler('intakes.sections') }/>
                     <Input label={ 'Opening height' } value={ intakes.opening } handleOnChange={ this.paramInputHandler('intakes.opening') }/>
-                    <Input label={ 'Vent length' } value={ intakes.vent } handleOnChange={ this.paramInputHandler('intakes.vent') }/>
+                    <Input label={ 'Vent endposition' } value={ intakes.vent } handleOnChange={ this.paramInputHandler('intakes.vent') }/>
                 </div>
             </React.Fragment>
         );

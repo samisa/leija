@@ -36,6 +36,7 @@ export function vec2(array = null) {
     return array ? new THREE.Vector2().fromArray(array) : new THREE.Vector2();
 }
 
+//TODO:move to utils.
 export function foilLeadingEdgePointIndex(foil) {
     return  _.reduce(foil, (accumulator, point, index) => {
         let lePointIndex = accumulator;
@@ -45,7 +46,7 @@ export function foilLeadingEdgePointIndex(foil) {
 }
 
 //TODO:move to utils.
-export function foilBottomPointIndex(offset, foil) {
+export function foilPointIndex({ offset, foil, bottom }) {
     let lePointIndex = foilLeadingEdgePointIndex(foil);
     let leV = foil[lePointIndex];
     let teV = foil[foil.length-1];
@@ -56,8 +57,8 @@ export function foilBottomPointIndex(offset, foil) {
     // chordPointAtOffset and perpendicular to chord.
     // TODO: Can be simplified as this is now in 2d
     let normal = vec2().subVectors(teV, leV); //not normalized but should ot matter
-    let { closestPointIndex } = _.reduce(foil.slice(lePointIndex, foil.length), (accumulator, point, i) => {
-        let index = i + lePointIndex; //cause we sliced...
+    const half = bottom ?  foil.slice(lePointIndex, foil.length) : foil.slice(0, lePointIndex); 
+    let { closestPointIndex } = _.reduce(half, (accumulator, point, i) => {
         let { closestPoint, distSqr } = accumulator;
         let newDistSqr = normal.x * (chordPointAtOffset.x-point.x) +
                          normal.y * (chordPointAtOffset.y-point.y);
@@ -65,12 +66,15 @@ export function foilBottomPointIndex(offset, foil) {
         if (distSqr && distSqr < newDistSqr) {
             return accumulator;
         } else {
-            return { closestPointIndex: index, closestPoint: point, distSqr: newDistSqr };
+            return { closestPointIndex: i, closestPoint: point, distSqr: newDistSqr };
         }
     }, {});
 
-    return closestPointIndex;
+    return bottom ? closestPointIndex + lePointIndex : closestPointIndex;
 }
+
+//TODO:move to utils.
+export const foilBottomPointIndex = (offset, foil) => foilPointIndex({ offset, foil, bottom: true });
 
 // net is a collection nodes, and collection of links.
 // each node has:

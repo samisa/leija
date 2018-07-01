@@ -24,12 +24,12 @@ export default class Input extends React.Component {
             case 'text':
                 return <input type="text"
                               value={ value }
-                              onChange={ handleOnChange }
+                              onChange={ (evt) => handleOnChange(evt.target.value) }
                        />;
             case 'boolean':
                 return <input type="checkbox"
-                              value={ value }
-                              onChange={ handleOnChange }
+                              checked={ value }
+                              onChange={ (evt) => handleOnChange(evt.target.checked) }
                        />;
         }
     }

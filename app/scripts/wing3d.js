@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import * as THREE from 'three';
-import { foilLeadingEdgePointIndex } from './bridle';
+import { foilLeadingEdgePointIndex, foilPointIndex } from './bridle';
 
 
 const applyTo3Vectors = (mat4, vecs) => {
@@ -58,9 +58,10 @@ function wingSpecToPoints(wingSpec) {
     return foils;
 };
 
-function createMesh(wingSpec) {
+function createWingObjects(wingSpec) {
     const { intakes, sections } = wingSpec;
     const opening = (intakes && intakes.opening) || 0;
+    const closed = intakes && intakes.closed;
     const sectionsWithOpening = (
         intakes &&
         intakes.sections &&
@@ -78,8 +79,6 @@ function createMesh(wingSpec) {
         _(foil).each((p, index) => {
             topSkinGeometry.vertices.push(p);
             bottomSkinGeometry.vertices.push(p);
-//            if(p <= lePointIndex) { topSkinGeometry.vertices.push(p); }
-  //          if(p >= lePointIndex) { bottomSkinGeometry.vertices.push(p); }
         });
     });
 
@@ -96,31 +95,46 @@ function createMesh(wingSpec) {
                       foils[i][j].distanceTo(foils[i][lePointIndex]) < openingDist;
 
             if (faceWithinOpening) { continue; }
-
             const skinGeometry = j <= lePointIndex ? topSkinGeometry : bottomSkinGeometry;
             skinGeometry.faces.push(new THREE.Face3(    n + j,              n + j + 1, n + j + foilLength));
             skinGeometry.faces.push(new THREE.Face3(n + j + 1, n + j + foilLength + 1, n + j + foilLength));
+        }
+
+        if (closed && sectionsWithOpening.includes(i)) {
+            const ventStartIndex = foilPointIndex({ bottom: true, foil: foils[i], offset: opening });
+            const ventEndIndex = foilPointIndex({ bottom: false, foil: foils[i], offset: intakes.vent });
+            bottomSkinGeometry.faces.push(new THREE.Face3(n + ventStartIndex,
+                                                          n + ventEndIndex,
+                                                          n + ventStartIndex + foilLength));
+            bottomSkinGeometry.faces.push(new THREE.Face3(n + ventEndIndex,
+                                                          n + ventEndIndex + foilLength ,
+                                                          n + ventStartIndex + foilLength));
         }
     }
 
     const topMaterial =  new THREE.MeshPhongMaterial( { color: 0xddddff, shading: THREE.FlatShading,  side: THREE.DoubleSide } );
     const bottomMaterial =  new THREE.MeshPhongMaterial( { color: 0xffccaa, shading: THREE.FlatShading,  side: THREE.DoubleSide } );
 
-    const wingObject = new THREE.Object3D();
-    [ { geometry: topSkinGeometry, material: topMaterial },
-      { geometry: bottomSkinGeometry, material: bottomMaterial }
-    ].map(({ geometry, material }) => {
+
+    const topSkin = new THREE.Object3D();
+    topSkin.name = 'topSkin';
+    const bottomSkin = new THREE.Object3D();
+    bottomSkin.name = 'bottomSkin';
+
+    [ { geometry: topSkinGeometry, material: topMaterial, object: topSkin },
+      { geometry: bottomSkinGeometry, material: bottomMaterial, object: bottomSkin }
+    ].map(({ geometry, material, object }) => {
           const leftSide = geometry.clone();
           leftSide.applyMatrix(new THREE.Matrix4().makeScale(1,-1, 1));
           let leftMesh = new THREE.Mesh(leftSide, material);
           let rightMesh = new THREE.Mesh(geometry, material);
-          wingObject.add(rightMesh, leftMesh);
+          object.add(rightMesh, leftMesh);
       });
 
-    return wingObject;
+    return { topSkin, bottomSkin };
 }
 
 export {
-    createMesh,
+    createWingObjects,
     wingSpecToPoints
 }

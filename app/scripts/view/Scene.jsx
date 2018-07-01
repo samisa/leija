@@ -52,19 +52,11 @@ class Scene extends React.Component {
     }
 
     componentWillReceiveProps(newProps) {
-        let { wingObject, bridleObject } = newProps;
-
-        this.scene.remove(this.wingObject);
-        _.each(this.bridleObject && this.bridleObject.lines, (line) => { this.scene.remove(line); });
-
-        if (wingObject) {
-            this.scene.add(wingObject);
-            this.wingObject = wingObject;
-        }
-
-        if (bridleObject) {
-            _.each(bridleObject.lines, (line) => { this.scene.add(line); });
-            this.bridleObject = bridleObject;
+        const { objects } = newProps;
+        if (objects) {
+            this.objects && this.objects.forEach(obj => this.scene.remove(obj));
+            objects.forEach(obj => this.scene.add(obj));
+            this.objects = objects;
         }
     }
 
@@ -83,8 +75,6 @@ class Scene extends React.Component {
     }
 
     render() {
-        let { wingObject } = this.props;
-
         return (
             <div ref="container" className='threeCanvasContainer'/>
         );
