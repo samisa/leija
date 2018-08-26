@@ -49,8 +49,8 @@ export default class Input extends React.Component {
     render() {
         const { label } = this.props
         return (
-            <div className='wingeditor-TextInput'>
-                { label ? (<div> { label } </div>) : null }
+            <div className='input-wrapper'>
+                { label ? (<span> { label } </span>) : null }
                 { this.renderInput() }
             </div>
         );

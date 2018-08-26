@@ -10,8 +10,7 @@ const COLUMNS = [ 'y', 'chord', 'offset', 'dihedral', 'twist', 'foil' ];
 class WingEditor extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {};
-        _.bindAll(this, 'sectionRow', 'sectionCell', 'paramInputHandler', 'applyChanges');
+        _.bindAll(this, 'sectionRow', 'sectionCell', 'paramInputHandler');
     }
 
     sectionRow(section, rowIndex) {
@@ -32,33 +31,29 @@ class WingEditor extends React.Component {
 
     paramInputHandler(paramPath) {
         return (val) => {
-            _.set(this.state.wingDefinition, paramPath, val);
-            this.setState(this.state);
+            const newState = _.setWith(_.clone(this.props.wingDefinition), paramPath, val, _.clone);
+            actions.updateWing(newState);
         };
     }
 
-    componentWillReceiveProps(newProps) {
-        this.setState({ wingDefinition: _.clone(newProps.wingDefinition) });
-    }
-
-    applyChanges() {
-        actions.updateWing(_.clone(this.state.wingDefinition));
-    }
-
     renderValues() {
-        const { wingDefinition } = this.state;
+        const { wingDefinition } = this.props;
         const intakes = wingDefinition.intakes || {};
         return (
             <React.Fragment>
-                <table>
-                    <tbody>
-                        <tr>
-                            { _.map(COLUMNS, (col) => { return <th>{ col }</th>; }) }
-                        </tr>
-                        { wingDefinition.sections.map(this.sectionRow) }
-                    </tbody>
-                </table>
-                <div>
+                <div className="wing-params-shape-table">
+                    <table>
+                        <thead>
+                            <tr>
+                                { _.map(COLUMNS, (col) => { return <th>{ col }</th>; }) }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            { wingDefinition.sections.map(this.sectionRow) }
+                        </tbody>
+                    </table>
+                </div>
+                <div className="wing-paramas-intakes">
                     { "Intakes" }
                     <Input type={"boolean"} label={ 'Closed' } value={ intakes.closed } handleOnChange={ this.paramInputHandler('intakes.closed') }/>
                     <Input label={ 'Sections' } value={ intakes.sections } handleOnChange={ this.paramInputHandler('intakes.sections') }/>
@@ -70,14 +65,12 @@ class WingEditor extends React.Component {
     }
 
     render() {
-        const { wingDefinition } = this.state;
+        const { wingDefinition } = this.props;
 
         return (
             <div className='wing-params-editor'>
+                <div className="header">{ "Wing shape" } </div>
                 { wingDefinition ? this.renderValues() : null }
-                { wingDefinition && <button onClick={ this.applyChanges }> Apply changes </button> }
-                { wingDefinition && <button onClick={ actions.saveKite }> Save... </button> }
-                <button onClick={ actions.openKite }> Open... </button>
             </div>
         );
 

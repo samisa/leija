@@ -12,43 +12,31 @@ const INPUTS = ['mainLineLength', 'barLength', 'towPoint', 'wingLineLength'];
 class BridleEditor extends React.Component {
     constructor(props) {
         super(props);
-        this.state = {};
-        _.bindAll(this, 'applyChanges', 'inputHandler');
+        _.bindAll(this, 'inputHandler');
     }
 
     inputHandler(input) {
         let that = this;
         return (evt) => {
-            that.state.bridleDefinition[input] = evt.target.value;
-            that.setState(that.state);
+            const newState = _.clone(that.props.bridleDefinition);
+            newState[input] = evt.target.value;
+            actions.updateBridle(newState);
         };
     }
 
-    componentWillReceiveProps(newProps) {
-        this.setState({ bridleDefinition: _.clone(newProps.bridleDefinition) });
-    }
-
-    applyChanges() {
-        actions.updateBridle(_.clone(this.state.bridleDefinition));
-    }
-
     render() {
-        let { bridleDefinition } = this.state;
+        let { bridleDefinition } = this.props;
 
         return (
             <div className='bridle-params-editor'>
                 {
                     bridleDefinition ? _.map(INPUTS, (input) => {
-                        return (
-                            <label>
-                              { input }
-                              <Input handleOnChange={ this.inputHandler(input) } value={ bridleDefinition[input] }/>
-                            </label>);
+                        return (<Input handleOnChange={ this.inputHandler(input) } label={ input } value={ bridleDefinition[input] }/>);
                     }) : null
                 }
                 {
                     bridleDefinition ? _.map(bridleDefinition.wingConnections, (wcDef) => {
-//////////////.............
+                        //////////////.............
                     }) : null
                 }
 
@@ -60,3 +48,6 @@ class BridleEditor extends React.Component {
 };
 
 export default BridleEditor;
+
+
+// 2   export to xflr 5 format.  json format should not have absolute paths to profel file, but assum file in same folder... 

@@ -7,6 +7,7 @@ import state from './state';
 import * as parser from  './parser';
 import { planSVGS } from './wingplan';
 import * as bridles from './bridle';
+import { saveFile, exportXFLR5 } from './parser';
 
 const saveKite = state.actionCreator(() => {
     return function(dispatch, getState) {
@@ -20,13 +21,23 @@ const saveKite = state.actionCreator(() => {
             return;
         }
 
-        fs.writeFile(path, JSON.stringify({ wing, bridle, name }), function (err) {
-            if (err){
-                notification.error("An error ocurred creating the file "+ err.message);
-            }
+        saveFile(path, JSON.stringify({ wing, bridle, name }));
+    };
+});
 
-            notification.log("The file has been succesfully saved");
+const exportToXFLR5 = state.actionCreator(() => {
+    return function(dispatch, getState) {
+        const { wing, name } = getState();
+
+        const path = dialog.showOpenDialog({
+            properties: ['openDirectory']
         });
+
+        if (path === undefined) {
+            return;
+        }
+
+        exportXFLR5(path, { wing, name });
     };
 });
 
@@ -35,7 +46,7 @@ var openKite = state.actionCreator(() => {
         let file = dialog.showOpenDialog();
         if (!file) { return; }
         file = file[0];
-        const { wing, bridle, name } = parser.parse(file);
+        const { wing, bridle, name } = parser.loadJson(file);
         dispatch({ type: 'SET_BRIDLE_PARAMS', bridle: bridle || bridles.testBridleSpec });
         dispatch({ type: 'SET_WING_PARAMS', wing });
         dispatch({ type: 'SET_KITE_NAME', name }); //TODO...
@@ -83,5 +94,6 @@ export default {
     saveKite,
     updateWing,
     updateBridle,
-    createSheets
+    createSheets,
+    exportToXFLR5
 };
