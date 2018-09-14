@@ -70,7 +70,7 @@ function createWingObjects(wingSpec) {
 
     const foils = wingSpecToPoints(wingSpec);
     const foilLength = foils[0].length;
-    const lePointIndex = foilLeadingEdgePointIndex(foils[0]);
+    const lePointIndex = foilLeadingEdgePointIndex(wingSpec.foilDefs[wingSpec.sections[0].foil]);
 
     const topSkinGeometry = new THREE.Geometry();
     const bottomSkinGeometry = new THREE.Geometry();
@@ -101,8 +101,9 @@ function createWingObjects(wingSpec) {
         }
 
         if (closed && sectionsWithOpening.includes(i)) {
-            const ventStartIndex = foilPointIndex({ bottom: true, foil: foils[i], offset: opening });
-            const ventEndIndex = foilPointIndex({ bottom: false, foil: foils[i], offset: intakes.vent });
+            const foildef = wingSpec.foilDefs[wingSpec.sections[i].foil];
+            const ventStartIndex = foilPointIndex({ bottom: true, foil: foildef, offset: opening });
+            const ventEndIndex = foilPointIndex({ bottom: false, foil: foildef, offset: intakes.vent });
             bottomSkinGeometry.faces.push(new THREE.Face3(n + ventStartIndex,
                                                           n + ventEndIndex,
                                                           n + ventStartIndex + foilLength));

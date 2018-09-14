@@ -81,7 +81,7 @@ function exportXFLR5(dir, kiteDef) {
         //TODO: need to duplicate foil????
         return XFLR5_KEYS.map((key) => withDefaults(section, key)).join(' ');
     });
-    const wingFileContent = [ wingName, ...sectionLines ].join('\n');
+    const wingFileContent = [ wingName, ...sectionLines, '' ].join('\n');
     saveFile(wingFile, wingFileContent);
 
     //HERE open file and push lines...

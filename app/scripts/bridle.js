@@ -38,39 +38,20 @@ export function vec2(array = null) {
 
 //TODO:move to utils.
 export function foilLeadingEdgePointIndex(foil) {
-    return  _.reduce(foil, (accumulator, point, index) => {
-        let lePointIndex = accumulator;
-        lePointIndex = (foil[lePointIndex].x > point.x) ?  index : lePointIndex;
-        return lePointIndex;
+    return  _.reduce(foil, (acc, point, index) => {
+        return (foil[acc][0] > point[0]) ?  index : acc;
     }, 0);
 }
 
 //TODO:move to utils.
 export function foilPointIndex({ offset, foil, bottom }) {
-    let lePointIndex = foilLeadingEdgePointIndex(foil);
-    let leV = foil[lePointIndex];
-    let teV = foil[foil.length-1];
-    // le + offset * (te - le)
-    let chordPointAtOffset = vec2().subVectors(teV, leV).multiplyScalar(offset).add(leV);
-    // now find point in foil's bottom side closest to the line that goes through
-    // bottomside is points from le index to foil.length
-    // chordPointAtOffset and perpendicular to chord.
-    // TODO: Can be simplified as this is now in 2d
-    let normal = vec2().subVectors(teV, leV); //not normalized but should ot matter
-    const half = bottom ?  foil.slice(lePointIndex, foil.length) : foil.slice(0, lePointIndex); 
-    let { closestPointIndex } = _.reduce(half, (accumulator, point, i) => {
-        let { closestPoint, distSqr } = accumulator;
-        let newDistSqr = normal.x * (chordPointAtOffset.x-point.x) +
-                         normal.y * (chordPointAtOffset.y-point.y);
-        newDistSqr = newDistSqr * newDistSqr;
-        if (distSqr && distSqr < newDistSqr) {
-            return accumulator;
-        } else {
-            return { closestPointIndex: i, closestPoint: point, distSqr: newDistSqr };
-        }
-    }, {});
+    const lePointIndex = foilLeadingEdgePointIndex(foil);
+    const half = bottom ? foil.slice(lePointIndex + 1, foil.length) : foil.slice(0, lePointIndex + 1);
+    const indexInHalf =  _.reduce(half, (acc, point, index) => {
+        return Math.abs(half[acc][0] - offset) < Math.abs(point[0] - offset) ?  acc : index;
+    }, 0);
 
-    return bottom ? closestPointIndex + lePointIndex : closestPointIndex;
+    return bottom ? indexInHalf + lePointIndex : indexInHalf;
 }
 
 //TODO:move to utils.
@@ -223,9 +204,10 @@ export function init3lineNetForSolver(bridleSpec, wing) {
         return connectionRow.foils.map((foilIndex) => {
             let foil3d = foils[foilIndex];
             //TODO: store foildefs as vector2s
+            const foilDef = wing.foilDefs[wing.sections[foilIndex].foil];
             let foil2d = wing.foilDefs[wing.sections[foilIndex].foil].map((pt) => { return vec2(pt); });
             return {
-                position: foil3d[foilBottomPointIndex(connectionRow.xPos, foil2d)].clone(),
+                position: foil3d[foilBottomPointIndex(connectionRow.xPos, foilDef)].clone(),
                 fixed: true
             };
         });

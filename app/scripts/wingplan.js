@@ -13,7 +13,12 @@ function rotate2(vec, angle) {
 function wingToFoilSheetOutlines(wing) {
     let  { foilDefs, sections } = wing;
     return sections.map((section) => {
-        return { outline: { profile: foilDefs[section.foil].map((point) => { return vec2(point).multiplyScalar(section.chord); }) } };
+        return {
+            profile2d: foilDefs[section.foil], //for want of a better place, store here for later reference
+            outline: {
+                profile: foilDefs[section.foil].map((point) => { return vec2(point).multiplyScalar(section.chord); })
+            }
+        };
     });
 }
 
@@ -111,8 +116,11 @@ function project(wing) {
         let foil1 = foils[foilIndex];
         let foil2 = foils[foilIndex + 1];
 
-        let leIndex1 = foilLeadingEdgePointIndex(foil1);
-        let leIndex2 = foilLeadingEdgePointIndex(foil2);
+        // TODO: the indices should actually be the same as the foils arre assumed to be normalized...
+        const foil12d = wing.foilDefs[wing.sections[foilIndex].foil];
+        const foil22d = wing.foilDefs[wing.sections[foilIndex].foil];
+        let leIndex1 = foilLeadingEdgePointIndex(foil12d);
+        let leIndex2 = foilLeadingEdgePointIndex(foil22d);
         let foil1TopEdge = foil1.slice(0, leIndex1);
         let foil2TopEdge = foil2.slice(0, leIndex2);
         let foil1BottomEdge = foil1.slice(leIndex1, foil1.length);
@@ -145,7 +153,7 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
 
     // fill gaps between points
     let fillOutline = (sheet, maxDist) => {
-        let filledOutline = _.mapValues(sheet.outline, (edge) => {
+        let filledOutline = _.mapValues(sheet.outline, (edge) => {  //outine contains profile and profile 2d
             let filled = [];
             for (let i = 0; i < edge.length-1; i++) {
                 let p1 = edge[i];
@@ -249,7 +257,7 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
 
         bridle.wingConnections.map(({ xPos, foils }) => {
             if (_.includes(foils, index)) {
-                let pos = sheet.outline.profile[foilBottomPointIndex(xPos, sheet.outline.profile)];
+                let pos = sheet.outline.profile[foilBottomPointIndex(xPos, sheet.profile2d)]; //////HER wtf is profile???
                 var circles = svgContainer
                         .append("circle")
                         .attr('cx', pos.x)
@@ -259,7 +267,7 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
             }
         });
 
-        let pos = sheet.outline.profile[foilBottomPointIndex(0, sheet.outline.profile)]; //point where top sheet ends....
+        let pos = sheet.outline.profile[foilBottomPointIndex(0, sheet.profile2d)]; //point where top sheet ends....
         var circles = svgContainer
                 .append("circle")
                 .attr('cx', pos.x)
