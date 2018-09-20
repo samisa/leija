@@ -11,6 +11,8 @@ let root = (state = {}, action) => {
         return Object.assign({}, state, { wing: action.wing });
     case 'SET_BRIDLE_PARAMS':
         return Object.assign({}, state, { bridle: action.bridle });
+    case 'SHOW_SHEETS':
+        return Object.assign({}, state, { sheetSvgs: action.svgs });
     default:
         return state;
     }

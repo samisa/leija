@@ -70,9 +70,16 @@ var createSheets = state.actionCreator(() => {
         let wing = getState().wing;
         let bridle = getState().bridle;
         let svgs = planSVGS({ bridle, wing });
+
+        dispatch({type: 'SHOW_SHEETS', svgs });
+    };
+});
+
+var saveSvgs = state.actionCreator((svgs) => {
+    return function(dispatch, getState) {
         let path = dialog.showOpenDialog({ title: 'Select folder to save into', properties: [  'openDirectory' ]})[0];
         if (path === undefined || !fs.lstatSync(path).isDirectory()) {
-            return;
+             return;
         }
 
         svgs.map((svg, index) => {
@@ -95,5 +102,6 @@ export default {
     updateWing,
     updateBridle,
     createSheets,
+    saveSvgs,
     exportToXFLR5
 };

@@ -9,6 +9,7 @@ import { createWingObjects } from '../wing3d';
 import { createBridleObject } from '../bridle3d';
 import WingEditor from  './WingEditor';
 import BridleEditor from  './BridleEditor';
+import SheetView from  './SheetView';
 import Input from './Input';
 import actions from '../actions';
 
@@ -29,7 +30,7 @@ class AppComponent extends React.Component {
     }
 
     render() {
-        let { wingDefinition, bridleDefinition } = this.props;
+        let { wingDefinition, bridleDefinition, sheetSvgs } = this.props;
         let { bottomSkin, topSkin, objects } = this.state;
         objects = objects && objects.filter(({ name }) => ((name !== 'bottomSkin' || bottomSkin) && (name !== 'topSkin' || topSkin)) );
 
@@ -54,6 +55,7 @@ class AppComponent extends React.Component {
                 />
 
                 <Scene objects={ objects } />
+                <SheetView { ...{ sheetSvgs } }/>
             </div>
         );
     }
@@ -61,10 +63,11 @@ class AppComponent extends React.Component {
 
 let selectWing = ({ wing } = {}) => { return wing; };
 let selectBridle = ({ bridle } = {}) => { return bridle; };
+const selectSheets = ({ sheetSvgs } = {}) => sheetSvgs;
 
-const App = connect(createSelector(selectWing, selectBridle, (wing, bridle) => {
+const App = connect(createSelector(selectWing, selectBridle, selectSheets, (wing, bridle, sheetSvgs) => {
     if (!wing) { return {}};
-    return { wingDefinition: wing, bridleDefinition: bridle }
+    return { wingDefinition: wing, bridleDefinition: bridle, sheetSvgs }
 }))(AppComponent);
 
 export default App;
