@@ -41,7 +41,7 @@ function wingSpecToPoints(wingSpec) {
         let scale = new THREE.Matrix4().makeScale(section.chord, section.chord, section.chord);
         applyTo3Vectors(scale, foils[index]);
 
-        let xtranslation = new THREE.Matrix4().makeTranslation(section.offset, 0, 0);
+        let xtranslation = new THREE.Matrix4().makeTranslation(section.offset*1.0, 0, 0);
         applyTo3Vectors(xtranslation, foils[index]);
 
         let deltaY = section.y - previousY;
