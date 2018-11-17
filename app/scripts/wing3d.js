@@ -116,7 +116,6 @@ function createWingObjects(wingSpec) {
     const topMaterial =  new THREE.MeshPhongMaterial( { color: 0xddddff, flatShading: true,  side: THREE.DoubleSide } );
     const bottomMaterial =  new THREE.MeshPhongMaterial( { color: 0xffccaa, flatShading: true,  side: THREE.DoubleSide } );
 
-
     const topSkin = new THREE.Object3D();
     topSkin.name = 'topSkin';
     const bottomSkin = new THREE.Object3D();

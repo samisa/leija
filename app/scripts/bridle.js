@@ -2,76 +2,89 @@ import _ from 'lodash';
 import * as THREE from 'three';
 import * as wing3d from './wing3d';
 
-export const testBridleSpec = {
+import { vec2, vec3, foilLeadingEdgePointIndex, foilPointIndex, foilBottomPointIndex } from './utils';
+
+export const DEFAULT_BRIDLE = {
     mainLineLength: 20,
-    cascade1Length: 1.0,
+    b3NodeZDist: 3.0,
+    b2LineLength: 1.0,
     barLength: 0.5,
     nRows: 3,
     towPoint: 0.34, //percent back from center le. b-bridle position
     wingConnections: [
         {  // a-lines
             xPos: 0.05,
-            foils: [0,1,2,3,4,5,6,7]
+           foils: [0,1,2,3,4,5,6,7]
         },
         {  // b-lines
             xPos: 0.3, //fraction of chord length
-            foils: [0,1,2,3,4,5,6,7]
+           foils: [0,1,2,3,4,5,6,7]
         },
         {  // c-lines
             xPos: 1.0, //fraction of chord length
-            foils: [0,1,2,3,4,5,6,7]
+           foils: [0,1,2,3,4,5,6,7]
         }
     ],
     wingLineLength: 0.3, //the short lines that  connect to wing
     bLineLength: 1
 };
 
-//TODO:move to utils
-export function vec3(array = null) {
-    return array ? new THREE.Vector3().fromArray(array) : new THREE.Vector3();
-}
 
-//TODO:move to utils
-export function vec2(array = null) {
-    return array ? new THREE.Vector2().fromArray(array) : new THREE.Vector2();
-}
+const pos3b = (wing, bridle) => {
+    const foils = wing3d.wingSpecToPoints(wing);
 
-//TODO:move to utils.
-export function foilLeadingEdgePointIndex(foil) {
-    return  _.reduce(foil, (acc, point, index) => {
-        return (foil[acc][0] > point[0]) ?  index : acc;
-    }, 0);
-}
+    const areaWeights = foils.map((foil3d, foilIndex) => {
+        return areaFactor = wing.sections[foilIndex].chord * (
+            foilIndex === 0 ?
+            wing.sections[foilIndex].y / 2 :
+            foilIndex === sections.length - 1 ?
+            (wing.sections[foilIndex].y - wing.sections[foilIndex-1].y) / 2 :
+            (wing.sections[foilIndex].y - wing.sections[foilIndex-1].y)
+        );
+    });
+    const total = areaWeights.reduce((a, v) => a + v);
+    const weights = areaWeights.map(w => w / total);
 
-//TODO:move to utils.
-export function foilPointIndex({ offset, foil, bottom }) {
-    const lePointIndex = foilLeadingEdgePointIndex(foil);
-    const half = bottom ? foil.slice(lePointIndex + 1, foil.length) : foil.slice(0, lePointIndex + 1);
-    const indexInHalf =  _.reduce(half, (acc, point, index) => {
-        return Math.abs(half[acc][0] - offset) < Math.abs(point[0] - offset) ?  acc : index;
-    }, 0);
+    const bLineAttachmentX = bridle.wingConnections[1].xPos;
+    const bLineAttachemntPoints3d = foils.map((foil3d, foilIndex) => {
+        const foilDef = wing.foilDefs[wing.sections[foilIndex].foil];
+        return foil3d[foilBottomPointIndex(bLineAttachmentX, foilDef)];
+    });
 
-    return bottom ? indexInHalf + lePointIndex : indexInHalf;
-}
+    const average = bLineAttachemntPoints3d.reduce((a, v, i) => {
+        a.addVectors(a, v.multiplyScalar(weights[i]));
+    }, vec3());
 
-//TODO:move to utils.
-export const foilBottomPointIndex = (offset, foil) => foilPointIndex({ offset, foil, bottom: true });
+    return vec3([average.x, average.y, bridle.b3NodeZDist]);
+};
+
+const pos2b = (wing, bridle, pos3b) => {
+    const { b2LineLength } = bridle;
+    const barAttacmentPos = vec3([0.0, 0.0, 25.0]); //TODO: determine this properly
+    const result = pos3b.clone();
+    const rel = vec3().subVectors(barAttacmentPos, result);
+    return result.addVectors(
+        result,
+        rel.multiplyScalar(b2LineLength / rel.length())
+    );
+};
+
 
 // net is a collection nodes, and collection of links.
-// each node has:
-// position: position,
-// fixed: if truthy position is fixed,
-// links: collection, each link has referene to two nodes and,
-//      length: the length this link should stabilize to or undefined for free links
-//              ( whose length will be determined by this algorithm)
-// all vectors are threejs vrctors
-// The algorithm:
-// spring-net type of iterative simulation:
-// links with length have force of type k*(L-l)
-// free-length links -k*l
-// once stable enough, decrease force used for free-length links until
-// fixed length links are close enough to desired lengths
-export function solveBridle(net) {
+    // each node has:
+    // position: position,
+    // fixed: if truthy position is fixed,
+    // links: collection, each link has referene to two nodes and,
+    //      length: the length this link should stabilize to or undefined for free links
+    //              ( whose length will be determined by this algorithm)
+    // all vectors are threejs vrctors
+    // The algorithm:
+    // spring-net type of iterative simulation:
+    // links with length have force of type k*(L-l)
+    // free-length links -k*l
+    // once stable enough, decrease force used for free-length links until
+    // fixed length links are close enough to desired lengths
+    export function solveBridle(net) {
     let k = 1;
     let kFree = k;
     let maxDeltaSqr = 0;
@@ -87,8 +100,8 @@ export function solveBridle(net) {
         let theK = L === undefined ? kFree : k;
         theK = link.weight === undefined ? theK : link.weight * theK;
         return L === undefined ?
-            rel.multiplyScalar(theK) :
-            rel.multiplyScalar(theK*(Math.max(d2 - L, 0)));
+               rel.multiplyScalar(theK) :
+               rel.multiplyScalar(theK*(Math.max(d2 - L, 0)));
     };
 
     function iterate() {
@@ -101,11 +114,11 @@ export function solveBridle(net) {
         });
 
         // for each link calculate force and add it to the nodes
-       _(net.links).each((link) => {
-           let force = linkForce(link);
-           link.nodes[0].fixed || link.nodes[0].force.add(force);
-           link.nodes[1].fixed || link.nodes[1].force.sub(force);
-       });
+        _(net.links).each((link) => {
+            let force = linkForce(link);
+            link.nodes[0].fixed || link.nodes[0].force.add(force);
+            link.nodes[1].fixed || link.nodes[1].force.sub(force);
+        });
 
         /////l
 
@@ -174,28 +187,28 @@ export function solveBridle(net) {
 // fixedLengths[2][6] = 0.39218293646651214;
 // fixedLengths[2][7] = 0.24863048432172394;
 /*
---------------------------------------------
-cascade-1-row-0-line-0: 0.9940888924338216
-cascade-1-row-0-line-1: 0.9073086126387557
-cascade-1-row-0-line-2: 0.815844935450249
-cascade-1-row-0-line-3: 0.712875180472101
-cascade-1-row-1-line-0: 0.8363292145947562
-cascade-1-row-1-line-1: 0.7129511986402148
-cascade-1-row-1-line-2: 0.6154063860053025
-cascade-1-row-1-line-3: 0.5341212381528352
-cascade-1-row-2-line-0: 1.0371802989003935
-cascade-1-row-2-line-1: 0.9345851422532443
-cascade-1-row-2-line-2: 0.8130454004458643
-cascade-1-row-2-line-3: 0.6401964670477147
---------------------------------------------
-cascade-2-line-a: 1.6533449345269837
-cascade-2-line-b: 1.2597140792001222
-cascade-2-line-c: 1.6415141079625144
-pulley-line-a: 0.697391934498364
-pulley-line-b: 0.6533432051828513
-primary-line: 20.000014048549264
-brake-line: 20.00001416123539
-*/
+   --------------------------------------------
+   cascade-1-row-0-line-0: 0.9940888924338216
+   cascade-1-row-0-line-1: 0.9073086126387557
+   cascade-1-row-0-line-2: 0.815844935450249
+   cascade-1-row-0-line-3: 0.712875180472101
+   cascade-1-row-1-line-0: 0.8363292145947562
+   cascade-1-row-1-line-1: 0.7129511986402148
+   cascade-1-row-1-line-2: 0.6154063860053025
+   cascade-1-row-1-line-3: 0.5341212381528352
+   cascade-1-row-2-line-0: 1.0371802989003935
+   cascade-1-row-2-line-1: 0.9345851422532443
+   cascade-1-row-2-line-2: 0.8130454004458643
+   cascade-1-row-2-line-3: 0.6401964670477147
+   --------------------------------------------
+   cascade-2-line-a: 1.6533449345269837
+   cascade-2-line-b: 1.2597140792001222
+   cascade-2-line-c: 1.6415141079625144
+   pulley-line-a: 0.697391934498364
+   pulley-line-b: 0.6533432051828513
+   primary-line: 20.000014048549264
+   brake-line: 20.00001416123539
+ */
 
 export function init3lineNetForSolver(bridleSpec, wing) {
     // nodes for fixed kite points:
@@ -253,7 +266,7 @@ export function init3lineNetForSolver(bridleSpec, wing) {
     ];
     //create 2nd cascade nodes and add to links:
     let node2s = _.map(line1Rows, (row, i) => {
-//        let node = { position: new THREE.Vector3().set(0, 0, 0) };
+        //        let node = { position: new THREE.Vector3().set(0, 0, 0) };
         let node = FIXED_NODE2S[i];
         _(row).each((link) => { link.nodes[1] = node; });
         return node;
@@ -290,25 +303,25 @@ export function printBridle(bridle) {
     }).join('\n');
 }
 /*
-----------------------
-. ---------------------  0-nodes, fixed on kite
- \   /  ---------------  0-lines, fixed length
-  \ /
+   ----------------------
+   . ---------------------  0-nodes, fixed on kite
+   \   /  ---------------  0-lines, fixed length
+   \ /
    .   ----------------  1-nodes
    \     --------------  1-lines
-    \|/
-     .  ---------------  2-nodes
+   \|/
+   .  ---------------  2-nodes
    \  \  --------------  2-lines, one for a, b, c (per side)
-    \  \
-  \  \  \
+   \  \
+   \  \  \
    \  .  \  -----------  3b-node, end of be b-bridle, pulley
-    \ |\  \  ----------  2 pulley lines a and c
-     \|  \ \
-      .    \. ---------  3a, 3b-nodes - 2a-line to a-pulley line. 2c-line to c-pulley iine
-       \     \
-        \     \  ------  brake line to 4c-node, primary line to 4a-node, fixed length
-         \     \
-          .-----.       bar-nodes, fixed
+   \ |\  \  ----------  2 pulley lines a and c
+   \|  \ \
+   .    \. ---------  3a, 3c-nodes - 2a-line to a-pulley line. 2c-line to c-pulley iine
+   \     \
+   \     \  ------  brake line to 4c-node, primary line to 4a-node, fixed length
+   \     \
+   .-----.       bar-nodes, fixed
 
-*/
+ */
 

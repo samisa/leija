@@ -1,0 +1,38 @@
+
+
+bridle calculation
+
+METHOD 1
+========
+
+1. calculate end points for b-lines (3b node – position for the pulley)
+
+ paramaters: z distance from kite.
+   y-pos for 3b nodes (foilwise direction):
+   assume pull is mostly from b line attachment points  so average over y pos of those position over foils
+   weighing with foil size.
+
+   x-pos: assuming direct lines from end point to each foil, find x-position where total x-z direction of pull
+   matches direction to split point of flying lines.
+
+2. 2b nodes
+
+ parameters: 2-b line lengths
+    given length from 3b to opposite deirection from bar attachment
+
+3. 1b nodes
+
+ parameters: 3-b line lengths
+   for given 1b-line connected to the 2b node calculate average direction of pull from the two attachment points
+   and go to that direction given distance to get the 1b node positions
+
+
+
+4. 3a and 3c nodes:
+ z coord should be same for both and determined by flying line length.
+ x coord shoul be determined from the x-z direcrion of pull assumed on the 3b-nodes,
+ however, c- nodes cpuld be moved slightly outwards and c-nodes repectively inwrds due to bar length.
+ Hard do determine the optimal distance but that is hardly important, much less than half bar length for cnodes anyway,
+ and for anodes with ratio of middle-front/middle-tail distance.
+pretty much same as for 3b node
+--------------naah.. assume zero force fomr the a-c bridles: can be determied by b3 node direction of pull and bar aatchments....

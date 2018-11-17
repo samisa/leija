@@ -96,6 +96,7 @@ function sectionEdgesToSheetOutline(foil1Edge, foil2Edge) {
     let sheetRightOutline = _(triangles).map((tri, index) => { return index % 2 === 0 ? tri[1] : null; }).compact().reverse().value();
     sheetRightOutline.push(triangles[0][1]);
 
+    /////////////////HERE: add area (sum of triangle areas)
     return {
         outline: {//reverse(sheetLeftOutline.concat(sheetRightOutline)),
             right: sheetRightOutline,
@@ -287,3 +288,7 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
     return svgs.map((svg) => svg.outerHTML );
 }
 
+///NEXT total area of canvas needed, and render sheets before exporting
+
+// balance bridle: assume force on each line connected to the kite is proportional
+// to the length of the foil. (foil widths also wary so not quite...)

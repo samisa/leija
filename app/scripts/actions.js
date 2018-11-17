@@ -47,7 +47,7 @@ var openKite = state.actionCreator(() => {
         if (!file) { return; }
         file = file[0];
         const { wing, bridle, name } = parser.loadJson(file);
-        dispatch({ type: 'SET_BRIDLE_PARAMS', bridle: bridle || bridles.testBridleSpec });
+        dispatch({ type: 'SET_BRIDLE_PARAMS', bridle: bridle || bridles.DEFAULT_BRIDLE });
         dispatch({ type: 'SET_WING_PARAMS', wing });
         dispatch({ type: 'SET_KITE_NAME', name }); //TODO...
     };
