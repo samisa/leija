@@ -18,7 +18,6 @@ class Scene extends React.Component {
     }
 
     componentDidMount() {
-        this.camera, controls, scene, renderer;
         this.renderer = new THREE.WebGLRenderer();
         //this.renderer.shadowMap.enabled = true;
         this.scene = new THREE.Scene();
