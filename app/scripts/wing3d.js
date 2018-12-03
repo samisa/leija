@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import * as THREE from 'three';
-import { foilLeadingEdgePointIndex, foilPointIndex } from './bridle';
+import { foilLeadingEdgePointIndex, foilPointIndex } from './utils';
 
 
 const applyTo3Vectors = (mat4, vecs) => {
@@ -37,6 +37,7 @@ function wingSpecToPoints(wingSpec) {
                 .multiply(twistRot)
                 .multiply(andBack);
         applyTo3Vectors(twist, foils[index]);
+
 
         let scale = new THREE.Matrix4().makeScale(section.chord, section.chord, section.chord);
         applyTo3Vectors(scale, foils[index]);

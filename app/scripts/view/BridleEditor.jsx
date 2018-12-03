@@ -6,7 +6,7 @@ import Input from './Input';
 
 import actions from '../actions';
 
-const INPUTS = ['mainLineLength', 'barLength', 'towPoint', 'wingLineLength'];
+const INPUTS = ['mainLineLength', 'barLength', 'towPoint', 'wingLineLength', 'b3NodeZDist', 'b2LineLength'];
 //const WINGCONNECTIONINPUTS = {'wingConnections' : { 'xPos' } };
 
 class BridleEditor extends React.Component {
@@ -17,9 +17,9 @@ class BridleEditor extends React.Component {
 
     inputHandler(input) {
         let that = this;
-        return (evt) => {
+        return (value) => {
             const newState = _.clone(that.props.bridleDefinition);
-            newState[input] = evt.target.value;
+            newState[input] = value;
             actions.updateBridle(newState);
         };
     }

@@ -4,6 +4,17 @@ import * as wing3d from './wing3d';
 
 import { vec2, vec3, foilLeadingEdgePointIndex, foilPointIndex, foilBottomPointIndex } from './utils';
 
+export const convertBridle = (bridle) => {
+    return Object.keys(bridle).reduce((a, key) => {
+        return {
+            ...a,
+             //atm there ae only umbers and arrays should do this properly...
+            [key]: typeof bridle[key] === 'string' ? parseFloat(bridle[key]) : bridle[key]
+        };
+    }, {}
+    );
+};
+
 export const DEFAULT_BRIDLE = {
     mainLineLength: 20,
     b3NodeZDist: 3.0,
@@ -30,44 +41,155 @@ export const DEFAULT_BRIDLE = {
 };
 
 
-const pos3b = (wing, bridle) => {
-    const foils = wing3d.wingSpecToPoints(wing);
-
-    const areaWeights = foils.map((foil3d, foilIndex) => {
-        return areaFactor = wing.sections[foilIndex].chord * (
+const pos2b = (wing, bridle, foils, bLineAttachmentPoints3d, splitPointZ) => {
+    let weights = foils.map((foil3d, foilIndex) => {
+        return wing.sections[foilIndex].chord * (
             foilIndex === 0 ?
-            wing.sections[foilIndex].y / 2 :
-            foilIndex === sections.length - 1 ?
+            wing.sections[foilIndex+1].y / 2 :
+            foilIndex === wing.sections.length - 1 ?
             (wing.sections[foilIndex].y - wing.sections[foilIndex-1].y) / 2 :
             (wing.sections[foilIndex].y - wing.sections[foilIndex-1].y)
         );
     });
-    const total = areaWeights.reduce((a, v) => a + v);
-    const weights = areaWeights.map(w => w / total);
 
-    const bLineAttachmentX = bridle.wingConnections[1].xPos;
-    const bLineAttachemntPoints3d = foils.map((foil3d, foilIndex) => {
-        const foilDef = wing.foilDefs[wing.sections[foilIndex].foil];
-        return foil3d[foilBottomPointIndex(bLineAttachmentX, foilDef)];
+    const total = weights.reduce((a, v) => a + v);
+    weights = weights.map(w => w / total);
+
+    // resultant force and momentum wrt origin
+    const forces = bLineAttachmentPoints3d.map((p, i) => {
+        const angle = -wing.sections[i].dihedral * Math.PI / 180;
+        const dir = vec3([ 0, Math.sin(angle), Math.cos(angle) ]);
+        return dir.multiplyScalar(weights[i]); //todo: seems that last foil has no dihedral...should use the dihedral from previous to last
     });
 
-    const average = bLineAttachemntPoints3d.reduce((a, v, i) => {
-        a.addVectors(a, v.multiplyScalar(weights[i]));
+    const F = forces.reduce((a, v, i) => {
+        return a.addVectors(a, v);
     }, vec3());
+    const momenta = bLineAttachmentPoints3d.map((p, i) => {
+        return -p.y * forces[i].z + p.z * forces[i].y;
+    });
+    const M = momenta.reduce((a, v) => a + v);
 
-    return vec3([average.x, average.y, bridle.b3NodeZDist]);
+    // solution line z*c +y*s.z -s.z*c = 0
+    const c = M/F.z;
+    const x = bLineAttachmentPoints3d.map((p, i) => p.x * weights[i]).reduce((a, v) => a + v);
+
+    //direction of line from splitpoint where 2b is an equilibriumpoint
+    let dir = vec3([0, -c, -splitPointZ]);
+    dir = dir.multiplyScalar(1/dir.length());
+    return vec3().addVectors(
+        vec3([ x, 0, splitPointZ ]),
+        dir.multiplyScalar(13) //TODO take from params the distance of 2b from split point.
+    );
+
+    // return {
+    //     p1: vec3([0, 100, -100*sz/c + sz]),
+    //     p2: vec3([0, -100, 100*sz/c + sz])
+    // };
+
+    //DEBUG: return two points in line where moment vanishes 
+    //pz == py*Fz/Fy - M0
+    // return {
+    //     p1: vec3([0, 100, 100*F.z/F.y +M]),
+    //     p2: vec3([0, -100, -100*F.z/F.y +M])
+    // };
 };
 
-const pos2b = (wing, bridle, pos3b) => {
+const pos3b = (wing, bridle, pos2b, splitPoint) => {
     const { b2LineLength } = bridle;
-    const barAttacmentPos = vec3([0.0, 0.0, 25.0]); //TODO: determine this properly
-    const result = pos3b.clone();
-    const rel = vec3().subVectors(barAttacmentPos, result);
+    const result = pos2b.clone();
+    const rel = vec3().subVectors(splitPoint, pos2b);
     return result.addVectors(
         result,
         rel.multiplyScalar(b2LineLength / rel.length())
     );
 };
+
+const pos1bs = (wing, bridle, pos2b, bLineAttachmentPoints3d) => {
+    return _.range(0, Math.floor(bLineAttachmentPoints3d.length/2)).map((i) => {
+        const p1 = bLineAttachmentPoints3d[i*2];
+        const p2 = bLineAttachmentPoints3d[i*2 + 1];
+        // assume equal pull from both attacment points...
+        const midPoint = vec3().addVectors(
+            p2,
+            vec3().subVectors(
+                p1,
+                p2
+            ).multiplyScalar(0.5)
+        );
+
+        return vec3().addVectors(
+            pos2b,
+            vec3().subVectors(
+                midPoint,
+                pos2b
+            ).multiplyScalar(0.7)
+        );
+    });
+
+};
+
+const pos3a = (pos3b, splitPoint) => {
+    let directionFrom3b = vec3().subVectors(splitPoint, pos3b);
+    directionFrom3b = directionFrom3b.multiplyScalar(1/directionFrom3b.length() * 0.7);
+    let result = vec3().addVectors(pos3b, directionFrom3b);
+    // add some adhoc x offset don't know what would be appropriate??? Should be pretty small assuming very small bar pressure
+    result = vec3().addVectors(result, vec3([0.02, 0, 0]));
+    return result;
+};
+
+const pos3c = (pos3b, barEndPoint) => {
+    let directionFrom3b = vec3().subVectors(barEndPoint, pos3b);
+    directionFrom3b = directionFrom3b.multiplyScalar(1/directionFrom3b.length() * 0.7);
+    let result = vec3().addVectors(pos3b, directionFrom3b);
+    result = vec3().addVectors(result, vec3([-0.1, 0, 0]));
+    return result;
+};
+
+export function solveBridle(wing, bridle) {
+    const splitPointZ = -15;
+    const barEndPoint = vec3([0.0, 0.30, -25.0]);
+    const barMidPoint = vec3([0.0, 0.0, -25.0]);
+    const foils = wing3d.wingSpecToPoints(wing);
+    const bLineAttachmentX = bridle.wingConnections[1].xPos;
+    const bLineAttachmentPoints3d = foils.map((foil3d, foilIndex) => {
+        const foilDef = wing.foilDefs[wing.sections[foilIndex].foil];
+        return foil3d[foilBottomPointIndex(bLineAttachmentX, foilDef)];
+    });
+
+    // const { p1, p2 } = pos2b(wing, bridle, foils, bLineAttachmentPoints3d, splitPoint);
+    // const bBridleLinks = [
+    //     { nodes: [ { position: p1 }, { position: p2 } ]},
+    // ];
+    const p2b = pos2b(wing, bridle, foils, bLineAttachmentPoints3d, splitPointZ);
+    const splitPoint = vec3([ p2b.x * splitPointZ/barMidPoint.z, 0, splitPointZ]);
+    const p3b = pos3b(wing, bridle, p2b, splitPoint);
+    const p1bs = pos1bs(wing, bridle, p2b, bLineAttachmentPoints3d);
+    const p3a = pos3a(p3b, splitPoint);
+    const p3c = pos3a(p3b, barEndPoint);
+    const bBridleLinks = [
+        //main lines
+        { nodes: [ { position: barMidPoint }, { position: splitPoint } ]},
+        { nodes: [ { position: barEndPoint }, { position: p3c } ]},
+        { nodes: [ { position: splitPoint }, { position: p3a } ]},
+
+        { nodes: [ { position: p3b }, { position: p2b } ]},
+        { nodes: [ { position: p3b }, { position: p3a } ]},
+        { nodes: [ { position: p3b }, { position: p3c } ]},
+        ...p1bs.map(p1b => ({ nodes: [ { position: p2b }, { position: p1b } ]})),
+        ...bLineAttachmentPoints3d.map((p0b, i) => ({ nodes: [ { position: p1bs[Math.floor(i/2)] }, { position: p0b } ] })),
+    ];
+
+    return { links: bBridleLinks };
+};
+
+
+
+
+
+
+
+
 
 
 // net is a collection nodes, and collection of links.
@@ -84,7 +206,7 @@ const pos2b = (wing, bridle, pos3b) => {
     // free-length links -k*l
     // once stable enough, decrease force used for free-length links until
     // fixed length links are close enough to desired lengths
-    export function solveBridle(net) {
+    export function solveBridle2(net) {
     let k = 1;
     let kFree = k;
     let maxDeltaSqr = 0;
@@ -157,58 +279,6 @@ const pos2b = (wing, bridle, pos3b) => {
 }
 
 
-
-
-// let fixedLengths = [[], [], []];
-// fixedLengths[0][0] = 0.46108148756545436;
-// fixedLengths[0][1] = 0.4062909065485605;
-// fixedLengths[0][2] = 0.4348278240736058;
-// fixedLengths[0][3] = 0.3841251793641871;
-// fixedLengths[0][4] = 0.407576027043698;
-// fixedLengths[0][5] = 0.35996026882620474;
-// fixedLengths[0][6] = 0.38551373493374963;
-// fixedLengths[0][7] = 0.3544586367385954;
-
-// fixedLengths[1][0] = 0.37814663628671874;
-// fixedLengths[1][1] = 0.2984787531704365;
-// fixedLengths[1][2] = 0.33756945560151036;
-// fixedLengths[1][3] = 0.28363942291274175;
-// fixedLengths[1][4] = 0.3044807770130088;
-// fixedLengths[1][5] = 0.2785326544274991;
-// fixedLengths[1][6] = 0.28924770259340066;
-// fixedLengths[1][7] = 0.2854142451901452;
-
-// fixedLengths[2][0] = 0.5203898296448588;
-// fixedLengths[2][1] = 0.4607758335754818;
-// fixedLengths[2][2] = 0.4682575619855631;
-// fixedLengths[2][3] = 0.4018966878412104;
-// fixedLengths[2][4] = 0.4275360441773012;
-// fixedLengths[2][5] = 0.35495708621875843;
-// fixedLengths[2][6] = 0.39218293646651214;
-// fixedLengths[2][7] = 0.24863048432172394;
-/*
-   --------------------------------------------
-   cascade-1-row-0-line-0: 0.9940888924338216
-   cascade-1-row-0-line-1: 0.9073086126387557
-   cascade-1-row-0-line-2: 0.815844935450249
-   cascade-1-row-0-line-3: 0.712875180472101
-   cascade-1-row-1-line-0: 0.8363292145947562
-   cascade-1-row-1-line-1: 0.7129511986402148
-   cascade-1-row-1-line-2: 0.6154063860053025
-   cascade-1-row-1-line-3: 0.5341212381528352
-   cascade-1-row-2-line-0: 1.0371802989003935
-   cascade-1-row-2-line-1: 0.9345851422532443
-   cascade-1-row-2-line-2: 0.8130454004458643
-   cascade-1-row-2-line-3: 0.6401964670477147
-   --------------------------------------------
-   cascade-2-line-a: 1.6533449345269837
-   cascade-2-line-b: 1.2597140792001222
-   cascade-2-line-c: 1.6415141079625144
-   pulley-line-a: 0.697391934498364
-   pulley-line-b: 0.6533432051828513
-   primary-line: 20.000014048549264
-   brake-line: 20.00001416123539
- */
 
 export function init3lineNetForSolver(bridleSpec, wing) {
     // nodes for fixed kite points:

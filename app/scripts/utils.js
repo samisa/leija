@@ -1,3 +1,5 @@
+import _ from 'lodash';
+import * as THREE from 'three';
 
 //TODO:move to utils
 export function vec3(array = null) {

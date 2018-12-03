@@ -7,6 +7,7 @@ import Scene from './Scene';
 import { ipcRenderer } from 'electron';
 import { createWingObjects } from '../wing3d';
 import { createBridleObject } from '../bridle3d';
+import { convertBridle } from '../bridle';
 import WingEditor from  './WingEditor';
 import BridleEditor from  './BridleEditor';
 import SheetView from  './SheetView';
@@ -23,8 +24,8 @@ class AppComponent extends React.Component {
     applyChanges() {
         const wing = this.props.wingDefinition;
         const bridle = this.props.bridleDefinition;
-        const { topSkin, bottomSkin } = createWingObjects(wing); //TODO: shoud not be done on bridle-only changes
-        const bridleLines = createBridleObject(wing, bridle).lines;
+        const { topSkin, bottomSkin } = createWingObjects(wing); //TODO: shoud not be done on bridle-only changes.also convert strings...
+        const bridleLines = createBridleObject(wing, convertBridle(bridle)).lines;
         const objects = [ topSkin, bottomSkin, ...bridleLines ];
         this.setState({ objects });
     }

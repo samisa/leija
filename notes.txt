@@ -5,20 +5,37 @@ bridle calculation
 METHOD 1
 ========
 
-1. calculate end points for b-lines (3b node – position for the pulley)
+1. calculate end points for b-lines (2b node – position where b-line splits to n lines going towards foil pairs)
 
- paramaters: z distance from kite.
-   y-pos for 3b nodes (foilwise direction):
-   assume pull is mostly from b line attachment points  so average over y pos of those position over foils
-   weighing with foil size.
+   assume pull is mostly from b line attachment points  so sum direction of pull  over foils
+   weighing with foil size. to get resultant y-z force F and momentum M wrt origin.
+   Assume the middlefoil is roughtly at origin, and skin tension from other half of kite
+   provides force along y axis in origin.
+   At 2b the flying line provides force towards flying line split point.
+   Taking 2b === (y, z) as reference point, and requiring total force and momentum to vanish there
+   we can solve for y,z line:
+   z*c + y*s_z -s_z * c = 0
+   where c = M/F and s_z the split point z.
 
-   x-pos: assuming direct lines from end point to each foil, find x-position where total x-z direction of pull
-   matches direction to split point of flying lines.
+   Take x as the area weighted average over the foils bline attachment points.
 
-2. 2b nodes
 
+   y:
+     Mp = M0 - F cross p == 0
+     M0 - Fy*pz + Fz*py = 0
+     => pz == py*Fz/Fy + M0   // line where momentum vanishes
+
+
+111111111
+
+Hmmm. line from 2b to 3b/splitpoint should be parallel to resultant force, and it should
+be on the side of zero moment line where moment sign is positive, so that the moment can be counterbaöanced by skin tension???
+
+
+
+2. 3b nodes
  parameters: 2-b line lengths
-    given length from 3b to opposite deirection from bar attachment
+    given length from 2b towards split point
 
 3. 1b nodes
 
@@ -30,9 +47,10 @@ METHOD 1
 
 4. 3a and 3c nodes:
  z coord should be same for both and determined by flying line length.
- x coord shoul be determined from the x-z direcrion of pull assumed on the 3b-nodes,
- however, c- nodes cpuld be moved slightly outwards and c-nodes repectively inwrds due to bar length.
- Hard do determine the optimal distance but that is hardly important, much less than half bar length for cnodes anyway,
- and for anodes with ratio of middle-front/middle-tail distance.
+ x coord for a node determined from the x-z direcrion from 3b to flying lne split point.
+ x coord for c node determined from the x-z direcrion from 3b to bar end point.
+ y coords???
 pretty much same as for 3b node
 --------------naah.. assume zero force fomr the a-c bridles: can be determied by b3 node direction of pull and bar aatchments....
+
+
