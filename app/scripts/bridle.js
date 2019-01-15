@@ -87,7 +87,7 @@ const pos2b = (wing, bridle, foils, bLineAttachmentPoints3d, splitPointZ) => {
     //     p2: vec3([0, -100, 100*sz/c + sz])
     // };
 
-    //DEBUG: return two points in line where moment vanishes 
+    //DEBUG: return two points in line where moment vanishes
     //pz == py*Fz/Fy - M0
     // return {
     //     p1: vec3([0, 100, 100*F.z/F.y +M]),
@@ -138,6 +138,10 @@ const pos3a = (pos3b, splitPoint) => {
     return result;
 };
 
+const pos2a = (pos3a, pos2b, aLineAttachmentPoints3d) => {
+    // HERE copy y,z from pos2b and take x as wieghd verage over alineattachment points.
+};
+
 const pos3c = (pos3b, barEndPoint) => {
     let directionFrom3b = vec3().subVectors(barEndPoint, pos3b);
     directionFrom3b = directionFrom3b.multiplyScalar(1/directionFrom3b.length() * 0.7);
@@ -155,6 +159,14 @@ export function solveBridle(wing, bridle) {
     const bLineAttachmentPoints3d = foils.map((foil3d, foilIndex) => {
         const foilDef = wing.foilDefs[wing.sections[foilIndex].foil];
         return foil3d[foilBottomPointIndex(bLineAttachmentX, foilDef)];
+    });
+    const aLineAttachmentPoints3d = foils.map((foil3d, foilIndex) => {
+        const foilDef = wing.foilDefs[wing.sections[foilIndex].foil];
+        return foil3d[foilBottomPointIndex(0, foilDef)];
+    });
+    const cLineAttachmentPoints3d = foils.map((foil3d, foilIndex) => {
+        const foilDef = wing.foilDefs[wing.sections[foilIndex].foil];
+        return foil3d[foilBottomPointIndex(1, foilDef)];
     });
 
     // const { p1, p2 } = pos2b(wing, bridle, foils, bLineAttachmentPoints3d, splitPoint);
@@ -177,7 +189,8 @@ export function solveBridle(wing, bridle) {
         { nodes: [ { position: p3b }, { position: p3a } ]},
         { nodes: [ { position: p3b }, { position: p3c } ]},
         ...p1bs.map(p1b => ({ nodes: [ { position: p2b }, { position: p1b } ]})),
-        ...bLineAttachmentPoints3d.map((p0b, i) => ({ nodes: [ { position: p1bs[Math.floor(i/2)] }, { position: p0b } ] })),
+        // TODO last one's undefined
+        //...bLineAttachmentPoints3d.map((p0b, i) => ({ nodes: [ { position: p1bs[Math.floor(i/2)] }, { position: p0b } ] })),
     ];
 
     return { links: bBridleLinks };

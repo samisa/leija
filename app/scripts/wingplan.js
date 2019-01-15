@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import * as d3 from 'd3';
 
 import { wingSpecToPoints } from './wing3d';
-import { foilBottomPointIndex, foilLeadingEdgePointIndex, vec3, vec2 } from './bridle';
+import { foilPointAtOffset, foilBottomPointIndex, foilLeadingEdgePointIndex, vec3, vec2 } from './utils';
 
 // too bad threejs does not support 2d transformations and matrices.
 function rotate2(vec, angle) {
@@ -258,7 +258,7 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
 
         bridle.wingConnections.map(({ xPos, foils }) => {
             if (_.includes(foils, index)) {
-                let pos = sheet.outline.profile[foilBottomPointIndex(xPos, sheet.profile2d)]; //////HER wtf is profile???
+                let pos = foilPointAtOffset(xPos, sheet.profile2d, sheet.outline.profile, true);
                 var circles = svgContainer
                         .append("circle")
                         .attr('cx', pos.x)
@@ -268,7 +268,7 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
             }
         });
 
-        let pos = sheet.outline.profile[foilBottomPointIndex(0, sheet.profile2d)]; //point where top sheet ends....
+        let pos = foilPointAtOffset(0, sheet.profile2d, sheet.outline.profile, true);
         var circles = svgContainer
                 .append("circle")
                 .attr('cx', pos.x)
@@ -287,8 +287,3 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
 
     return svgs.map((svg) => svg.outerHTML );
 }
-
-///NEXT total area of canvas needed, and render sheets before exporting
-
-// balance bridle: assume force on each line connected to the kite is proportional
-// to the length of the foil. (foil widths also wary so not quite...)
