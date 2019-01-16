@@ -7,7 +7,9 @@ import { foilPointAtOffset, foilBottomPointIndex, foilLeadingEdgePointIndex, vec
 
 // too bad threejs does not support 2d transformations and matrices.
 function rotate2(vec, angle) {
-    vec.set(Math.cos(angle) * vec.x - Math.sin(angle) * vec.y, Math.sin(angle) * vec.x + Math.cos(angle) * vec.y);
+    const c = Math.cos(angle);
+    const s = Math.sin(angle);
+    vec.set(c * vec.x - s * vec.y, s * vec.x + c * vec.y);
 };
 
 function wingToFoilSheetOutlines(wing) {
@@ -16,12 +18,14 @@ function wingToFoilSheetOutlines(wing) {
         return {
             profile2d: foilDefs[section.foil], //for want of a better place, store here for later reference
             outline: {
-                profile: foilDefs[section.foil].map((point) => { return vec2(point).multiplyScalar(section.chord); })
+                profile: foilDefs[section.foil].map((point) => { return vec2([point[0], -point[1]]).multiplyScalar(section.chord); })
             }
         };
     });
 }
 
+
+//start from tail with. foil2 has greater y. In triangles x will be < 0...
 function sectionEdgesToSheetOutline(foil1Edge, foil2Edge) {
     // for odd index triangles,  corner 0 meets corner 0 and corner 1 meets corner 2 of previous triangle
     // for even index triangles, corner 0 meets corner 2 and corner 1 meets corner 1 of previous triangle
@@ -44,18 +48,19 @@ function sectionEdgesToSheetOutline(foil1Edge, foil2Edge) {
         tri[2].sub(tri[0]);
         tri[0].set(0, 0, 0);
 
-        // handle the case where triangle's normal points down
-        // -> it's corner 2 should be mirrored across the vertical plane where 01 edge resides
-        if (tri[1].x * tri[2].y - tri[1].y * tri[2].x < 0) {
-            let rel01Unit = tri[1].clone().normalize();
-            let xyprojectionUnit = vec3().set(rel01Unit.x, rel01Unit.y, 0).normalize();
-            let relVecFrom01EdgeToCorner2 = tri[2].clone()
+        //// This could be done after projection to 2d...............
+        // handle the case where triangle's normal points up
+        // -> its corner 2 should be mirrored across the vertical plane where 01 edge resides
+        if (tri[1].x * tri[2].y - tri[1].y * tri[2].x > 0) {
+            const rel01 = tri[1].clone();
+            const xyprojectionUnit = vec3().set(rel01.x, rel01.y, 0).normalize();
+            const relVecFrom01EdgeToCorner2 = tri[2].clone()
                     .sub(xyprojectionUnit.clone().multiplyScalar(tri[2].dot(xyprojectionUnit)));
             tri[2].sub(vec3().set(relVecFrom01EdgeToCorner2.x*2, relVecFrom01EdgeToCorner2.y*2, 0));
         }
 
         //rotate 0,1 edge to x,y plane around corner 0
-        let rel01Unit = tri[1].clone().normalize();
+        const rel01Unit = tri[1].clone().normalize();
         let xyprojectionUnit = vec3().set(rel01Unit.x, rel01Unit.y, 0).normalize();
         let quaternion = new THREE.Quaternion().setFromUnitVectors(rel01Unit, xyprojectionUnit );
         let rotation = new THREE.Matrix4().makeRotationFromQuaternion( quaternion );
@@ -75,7 +80,7 @@ function sectionEdgesToSheetOutline(foil1Edge, foil2Edge) {
 
     // Now we are in 2d
     // translate + rotate each triangle so that it meets previous triangle
-    let previous = triangles[0]; //leave first triangle as is
+    let previous = triangles[0];
     for (let i = 1; i < triangles.length; i++) {
         let even = i % 2 === 0;
         let tri = triangles[i];
@@ -93,16 +98,23 @@ function sectionEdgesToSheetOutline(foil1Edge, foil2Edge) {
 
     let sheetLeftOutline = _(triangles).map((tri, index) => { return index % 2 === 0 ? null : tri[0]; }).compact().value();
     sheetLeftOutline.push(triangles[triangles.length-1][2]);
-    let sheetRightOutline = _(triangles).map((tri, index) => { return index % 2 === 0 ? tri[1] : null; }).compact().reverse().value();
+    let sheetRightOutline = _(triangles).map((tri, index) => { return index % 2 === 0 ? tri[2] : null; }).compact().reverse().value();
     sheetRightOutline.push(triangles[0][1]);
+
+    //left outline is the one whose le (first point) is at origin. Rotate the points so that left outline is horizontal
+    const toVector = vec2([1,0]);
+    const fromVector = sheetLeftOutline[sheetLeftOutline.length-1];
+    const angle = toVector.angle() - fromVector.angle();
+    sheetLeftOutline.forEach((pt) => rotate2(pt, angle));
+    sheetRightOutline.forEach((pt) => rotate2(pt, angle));
 
     /////////////////HERE: add area (sum of triangle areas)
     return {
         outline: {//reverse(sheetLeftOutline.concat(sheetRightOutline)),
             right: sheetRightOutline,
-            te: [sheetRightOutline[sheetRightOutline.length - 1], sheetLeftOutline[0]],
+            le: [sheetRightOutline[sheetRightOutline.length - 1], sheetLeftOutline[0]],
             left: sheetLeftOutline,
-            le: [sheetLeftOutline[sheetLeftOutline.length - 1], sheetRightOutline[0]]
+            te: [sheetLeftOutline[sheetLeftOutline.length - 1], sheetRightOutline[0]]
         }
     };
 }
@@ -122,19 +134,30 @@ function project(wing) {
         const foil22d = wing.foilDefs[wing.sections[foilIndex].foil];
         let leIndex1 = foilLeadingEdgePointIndex(foil12d);
         let leIndex2 = foilLeadingEdgePointIndex(foil22d);
-        let foil1TopEdge = foil1.slice(0, leIndex1);
-        let foil2TopEdge = foil2.slice(0, leIndex2);
+        let foil1TopEdge = foil1.slice(0, leIndex1 + 1);
+        let foil2TopEdge = foil2.slice(0, leIndex2 + 1);
         let foil1BottomEdge = foil1.slice(leIndex1, foil1.length);
         let foil2BottomEdge = foil2.slice(leIndex2, foil2.length);
-        topSheets.push(sectionEdgesToSheetOutline(foil1TopEdge, foil2TopEdge));
-        bottomSheets.push(sectionEdgesToSheetOutline(foil1BottomEdge.reverse(), foil2BottomEdge.reverse()));
+        // some reverse trickstery to get the 0,0 coordinate to up-left
+        topSheets.push(sectionEdgesToSheetOutline(foil1TopEdge.reverse(), foil2TopEdge.reverse()));
+        bottomSheets.push(sectionEdgesToSheetOutline(foil1BottomEdge, foil2BottomEdge));
     }
+
+    // curve lenght function for debugging
+    // const lll = (pts) => {
+    //     let res = 0;
+    //     for(let i = 0; i < pts.length-1; i++) {
+    //         res += pts[i].distanceTo(pts[i+1]);
+    //     }
+    //     return res;
+    // };
 
     // TODO:
     // air holes for  bottom sheets
     // foil air holes
     return { topSheets, bottomSheets, foilSheets: wingToFoilSheetOutlines(wing) };
 }
+
 
 export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01, left: 0.01, le: 0.01, te: 0.02, profile: 0.01 } }) {
     let addSeamAllowances = (sheet) => {
@@ -144,7 +167,7 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
                 let p1 = edge[i];
                 let p2 = edge[i+1 === edge.length ? i - 1 : i + 1];
                 let p1Top2Rel = p2.clone().sub(p1);
-                let normal1 = edgeName === 'profile' ? vec2().set(p1Top2Rel.y, -p1Top2Rel.x).normalize(): vec2().set(-p1Top2Rel.y, p1Top2Rel.x).normalize(); //quick fix... profile outlines run in opposite direction.
+                let normal1 = edgeName !== 'profile' ? vec2().set(p1Top2Rel.y, -p1Top2Rel.x).normalize(): vec2().set(-p1Top2Rel.y, p1Top2Rel.x).normalize(); //quick fix... profile outlines run in opposite direction.
                 seam.push(p1.clone().add(normal1.multiplyScalar(config.seamAllowance[edgeName])));
             }
             return seam;
@@ -225,10 +248,10 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
         return svgContainer;
     };
 
-    const addSheetLabel = (label, svgContainer) => {
+    const addSheetLabel = (label, svgContainer, x, y) => {
         svgContainer.append("text")
-            .attr('x', 0)
-            .attr('y', 0)
+            .attr('x', x)
+            .attr('y', y)
             .text(label)
             .attr("font-family", "sans-serif")
             .attr("font-size", "0.02")
@@ -238,7 +261,7 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
     const topPanelSVG = (sheet, index) => {
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         const svgContainer = outlineAndSeam(svg, sheet);
-        addSheetLabel('top-panel-' + index, svgContainer);
+        addSheetLabel('top-panel-' + index, svgContainer, 0.07, 0.05);
         let svgString = (new window.XMLSerializer).serializeToString(svg);
         return svg;
     };
@@ -246,7 +269,7 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
     const bottomPanelSVG = (sheet, index) => {
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         const svgContainer = outlineAndSeam(svg, sheet);
-        addSheetLabel('bottom-panel-' + index, svgContainer);
+        addSheetLabel('bottom-panel-' + index, svgContainer, 0.07, 0.05);
         let svgString = (new window.XMLSerializer).serializeToString(svg);
         return svg;
     };
@@ -254,7 +277,7 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
     const profileSVG = (sheet, index) => {
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         const svgContainer = outlineAndSeam(svg, sheet);
-        addSheetLabel('profile-' + index, svgContainer);
+        addSheetLabel('profile-' + index, svgContainer, 0.05, 0);
 
         bridle.wingConnections.map(({ xPos, foils }) => {
             if (_.includes(foils, index)) {
