@@ -2,7 +2,7 @@ import _ from 'lodash';
 import * as THREE from 'three';
 import * as wing3d from './wing3d';
 
-import { vec2, vec3, foilLeadingEdgePointIndex, foilPointIndex, foilBottomPointIndex } from './utils';
+import { vec2, vec3, foilLeadingEdgePointIndex, foilPointIndex, foilBottomPointIndex, foilPointAtOffset } from './utils';
 
 export const convertBridle = (bridle) => {
     return Object.keys(bridle).reduce((a, key) => {
@@ -25,15 +25,15 @@ export const DEFAULT_BRIDLE = {
     wingConnections: [
         {  // a-lines
             xPos: 0.05,
-           foils: [0,1,2,3,4,5,6,7]
+            foils: [0,1,2,3,4,5,6,7,8,9]
         },
         {  // b-lines
             xPos: 0.3, //fraction of chord length
-           foils: [0,1,2,3,4,5,6,7]
+            foils: [0,1,2,3,4,5,6,7,8,9]
         },
         {  // c-lines
             xPos: 1.0, //fraction of chord length
-           foils: [0,1,2,3,4,5,6,7]
+            foils: [0,1,2,3,4,5,6,7,8,9]
         }
     ],
     wingLineLength: 0.3, //the short lines that  connect to wing
@@ -156,17 +156,20 @@ export function solveBridle(wing, bridle) {
     const barMidPoint = vec3([0.0, 0.0, -25.0]);
     const foils = wing3d.wingSpecToPoints(wing);
     const bLineAttachmentX = bridle.wingConnections[1].xPos;
+    const aLineAttachmentX = bridle.wingConnections[0].xPos;
+    const cLineAttachmentX = bridle.wingConnections[2].xPos;
+
     const bLineAttachmentPoints3d = foils.map((foil3d, foilIndex) => {
         const foilDef = wing.foilDefs[wing.sections[foilIndex].foil];
-        return foil3d[foilBottomPointIndex(bLineAttachmentX, foilDef)];
+        return foilPointAtOffset(bLineAttachmentX, foilDef, foil3d, true);
     });
     const aLineAttachmentPoints3d = foils.map((foil3d, foilIndex) => {
         const foilDef = wing.foilDefs[wing.sections[foilIndex].foil];
-        return foil3d[foilBottomPointIndex(0, foilDef)];
+        return foilPointAtOffset(aLineAttachmentX, foilDef, foil3d, true);
     });
     const cLineAttachmentPoints3d = foils.map((foil3d, foilIndex) => {
         const foilDef = wing.foilDefs[wing.sections[foilIndex].foil];
-        return foil3d[foilBottomPointIndex(1, foilDef)];
+        return foilPointAtOffset(cLineAttachmentX, foilDef, foil3d, true);
     });
 
     // const { p1, p2 } = pos2b(wing, bridle, foils, bLineAttachmentPoints3d, splitPoint);
@@ -189,10 +192,8 @@ export function solveBridle(wing, bridle) {
         { nodes: [ { position: p3b }, { position: p3a } ]},
         { nodes: [ { position: p3b }, { position: p3c } ]},
         ...p1bs.map(p1b => ({ nodes: [ { position: p2b }, { position: p1b } ]})),
-        // TODO last one's undefined
-        //...bLineAttachmentPoints3d.map((p0b, i) => ({ nodes: [ { position: p1bs[Math.floor(i/2)] }, { position: p0b } ] })),
+        ...bLineAttachmentPoints3d.map((p0b, i) => ({ nodes: [ { position: p1bs[Math.floor(i/2)] }, { position: p0b } ] })),
     ];
-
     return { links: bBridleLinks };
 };
 
