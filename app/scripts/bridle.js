@@ -105,10 +105,10 @@ const pos3b = (wing, bridle, pos2b, splitPoint) => {
     );
 };
 
-const pos1bs = (wing, bridle, pos2b, bLineAttachmentPoints3d) => {
-    return _.range(0, Math.floor(bLineAttachmentPoints3d.length/2)).map((i) => {
-        const p1 = bLineAttachmentPoints3d[i*2];
-        const p2 = bLineAttachmentPoints3d[i*2 + 1];
+const pos1s = (wing, bridle, pos2, lineAttachmentPoints3d) => {
+    return _.range(0, Math.floor(lineAttachmentPoints3d.length/2)).map((i) => {
+        const p1 = lineAttachmentPoints3d[i*2];
+        const p2 = lineAttachmentPoints3d[i*2 + 1];
         // assume equal pull from both attacment points...
         const midPoint = vec3().addVectors(
             p2,
@@ -119,10 +119,10 @@ const pos1bs = (wing, bridle, pos2b, bLineAttachmentPoints3d) => {
         );
 
         return vec3().addVectors(
-            pos2b,
+            pos2,
             vec3().subVectors(
                 midPoint,
-                pos2b
+                pos2
             ).multiplyScalar(0.7)
         );
     });
@@ -138,8 +138,19 @@ const pos3a = (pos3b, splitPoint) => {
     return result;
 };
 
-const pos2a = (pos3a, pos2b, aLineAttachmentPoints3d) => {
-    // HERE copy y,z from pos2b and take x as wieghd verage over alineattachment points.
+const pos2aOrc = (p3, p2b, lineAttachmentPoints3d) => {
+
+    const average = lineAttachmentPoints3d.reduce((a,p) => {
+        return a.addVectors(a, p);
+    }, vec3());
+    average.multiplyScalar(1/lineAttachmentPoints3d.length);
+
+
+    const dir = vec3().subVectors(average, p3);
+    dir.multiplyScalar(1/dir.length());
+    const distFactor = Math.abs(p3.z-p2b.z);  //this is a very lazy approximation to the point where z = p2b.z
+    const x = p3.x + distFactor * dir.x;
+    return vec3([ x, p2b.y, p2b.z ]);
 };
 
 const pos3c = (pos3b, barEndPoint) => {
@@ -179,9 +190,14 @@ export function solveBridle(wing, bridle) {
     const p2b = pos2b(wing, bridle, foils, bLineAttachmentPoints3d, splitPointZ);
     const splitPoint = vec3([ p2b.x * splitPointZ/barMidPoint.z, 0, splitPointZ]);
     const p3b = pos3b(wing, bridle, p2b, splitPoint);
-    const p1bs = pos1bs(wing, bridle, p2b, bLineAttachmentPoints3d);
+    const p1bs = pos1s(wing, bridle, p2b, bLineAttachmentPoints3d);
     const p3a = pos3a(p3b, splitPoint);
     const p3c = pos3a(p3b, barEndPoint);
+    const p2a = pos2aOrc(p3a, p2b, aLineAttachmentPoints3d);
+    const p1as = pos1s(wing, bridle, p2a, aLineAttachmentPoints3d);
+    const p2c = pos2aOrc(p3c, p2b, cLineAttachmentPoints3d);
+    const p1cs = pos1s(wing, bridle, p2c, cLineAttachmentPoints3d);
+
     const bBridleLinks = [
         //main lines
         { nodes: [ { position: barMidPoint }, { position: splitPoint } ]},
@@ -191,9 +207,21 @@ export function solveBridle(wing, bridle) {
         { nodes: [ { position: p3b }, { position: p2b } ]},
         { nodes: [ { position: p3b }, { position: p3a } ]},
         { nodes: [ { position: p3b }, { position: p3c } ]},
-        ...p1bs.map(p1b => ({ nodes: [ { position: p2b }, { position: p1b } ]})),
-        ...bLineAttachmentPoints3d.map((p0b, i) => ({ nodes: [ { position: p1bs[Math.floor(i/2)] }, { position: p0b } ] })),
+        ...p1bs.map(p1 => ({ nodes: [ { position: p2b }, { position: p1 } ]})),
+        ...bLineAttachmentPoints3d.map((p0, i) => ({ nodes: [ { position: p1bs[Math.floor(i/2)] }, { position: p0 } ] })),
+
+        { nodes: [ { position: p3a }, { position: p2a } ]},
+        ...p1as.map(p1 => ({ nodes: [ { position: p2a }, { position: p1 } ]})),
+        ...aLineAttachmentPoints3d.map((p0, i) => ({ nodes: [ { position: p1as[Math.floor(i/2)] }, { position: p0 } ] })),
+
+        { nodes: [ { position: p3c }, { position: p2c } ]},
+        ...p1cs.map(p1 => ({ nodes: [ { position: p2c }, { position: p1 } ]})),
+        ...cLineAttachmentPoints3d.map((p0, i) => ({ nodes: [ { position: p1cs[Math.floor(i/2)] }, { position: p0 } ] })),
+
     ];
+
+
+
     return { links: bBridleLinks };
 };
 

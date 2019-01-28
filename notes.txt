@@ -5,6 +5,9 @@ bridle calculation
 METHOD 1
 ========
 
+x: chordwise axis
+y: kite lengthwise axis
+
 1. calculate end points for b-lines (2b node – position where b-line splits to n lines going towards foil pairs)
 
    assume pull is mostly from b line attachment points  so sum direction of pull  over foils
@@ -25,14 +28,6 @@ METHOD 1
      M0 - Fy*pz + Fz*py = 0
      => pz == py*Fz/Fy + M0   // line where momentum vanishes
 
-
-111111111
-
-Hmmm. line from 2b to 3b/splitpoint should be parallel to resultant force, and it should
-be on the side of zero moment line where moment sign is positive, so that the moment can be counterbaöanced by skin tension???
-
-
-
 2. 3b nodes
  parameters: 2-b line lengths
     given length from 2b towards split point
@@ -43,8 +38,6 @@ be on the side of zero moment line where moment sign is positive, so that the mo
    for given 1b-line connected to the 2b node calculate average direction of pull from the two attachment points
    and go to that direction given distance to get the 1b node positions
 
-
-
 4. 3a and 3c nodes:
  z coord should be same for both and determined by flying line length.
  x coord for a node determined from the x-z direcrion from 3b to flying lne split point.
@@ -53,4 +46,6 @@ be on the side of zero moment line where moment sign is positive, so that the mo
 pretty much same as for 3b node
 --------------naah.. assume zero force fomr the a-c bridles: can be determied by b3 node direction of pull and bar aatchments....
 
-
+5. 2a,2c nodes
+y,z can be same as for 2b.
+x: in line from 3a to average of attachment points???
