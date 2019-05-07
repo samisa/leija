@@ -6,7 +6,18 @@ import Input from './Input';
 
 import actions from '../actions';
 
-const INPUTS = ['mainLineLength', 'barLength', 'towPoint', 'wingLineLength', 'b3NodeZDist', 'b2LineLength'];
+const INPUTS = [
+    'mainLineLength',
+    'barLength',
+    'towPoint',
+    'wingLineLength',
+    'b3NodeZDist',
+    'b2LineLength',
+    'sizeFactor',
+    'pulleyLineLength',
+    'a3xoffset',
+    'c3xoffset'
+];
 //const WINGCONNECTIONINPUTS = {'wingConnections' : { 'xPos' } };
 
 class BridleEditor extends React.Component {
@@ -39,9 +50,6 @@ class BridleEditor extends React.Component {
                         //////////////.............
                     }) : null
                 }
-
-
-                { bridleDefinition && <button onClick={ this.applyChanges }> Apply changes </button> }
             </div>
         );
     }
