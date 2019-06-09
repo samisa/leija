@@ -203,24 +203,47 @@ export function solveBridle(wing, bridle) {
 
     const bBridleLinks = [
         //main lines
-        { nodes: [ { position: barMidPoint }, { position: splitPoint } ]},
-        { nodes: [ { position: barEndPoint }, { position: p3c } ]},
-        { nodes: [ { position: splitPoint }, { position: p3a } ]},
+        { name: "bar_to_split", nodes: [ { position: barMidPoint }, { position: splitPoint } ]},
+        { name: "brake",nodes: [ { position: barEndPoint }, { position: p3c } ]},
+        { name: "split_to_3a", nodes: [ { position: splitPoint }, { position: p3a } ]},
 
-        { nodes: [ { position: p3b }, { position: p2b } ]},
-        { nodes: [ { position: p3b }, { position: p3a } ]},
-        { nodes: [ { position: p3b }, { position: p3c } ]},
-        ...p1bs.map(p1 => ({ nodes: [ { position: p2b }, { position: p1 } ]})),
-        ...bLineAttachmentPoints3d.map((p0, i) => ({ nodes: [ { position: p1bs[Math.floor(i/2)] }, { position: p0 } ] })),
+        { name: "3b_2b", nodes: [ { position: p3b }, { position: p2b } ]},
+        { name: "3b_3a", nodes: [ { position: p3b }, { position: p3a } ]},
+        { name: "3b_3c", nodes: [ { position: p3b }, { position: p3c } ]},
 
-        { nodes: [ { position: p3a }, { position: p2a } ]},
-        ...p1as.map(p1 => ({ nodes: [ { position: p2a }, { position: p1 } ]})),
-        ...aLineAttachmentPoints3d.map((p0, i) => ({ nodes: [ { position: p1as[Math.floor(i/2)] }, { position: p0 } ] })),
+        ...p1bs.map((p1, i) => ({
+            name: `2b_1b_${i}`,
+            nodes: [ { position: p2b }, { position: p1 } ]
+        })),
 
-        { nodes: [ { position: p3c }, { position: p2c } ]},
-        ...p1cs.map(p1 => ({ nodes: [ { position: p2c }, { position: p1 } ]})),
-        ...cLineAttachmentPoints3d.map((p0, i) => ({ nodes: [ { position: p1cs[Math.floor(i/2)] }, { position: p0 } ] })),
+        ...bLineAttachmentPoints3d.map((p0, i) => ({
+            name: `1b_kite_${i}`,
+            nodes: [ { position: p1bs[Math.floor(i/2)] }, { position: p0 } ]
+        })),
 
+        { name: "3a_2a", nodes: [ { position: p3a }, { position: p2a } ]},
+
+        ...p1as.map((p1, i) => ({
+            name: `2a_1a_i`,
+            nodes: [ { position: p2a }, { position: p1 } ]
+        })),
+
+        ...aLineAttachmentPoints3d.map((p0, i) => ({
+            name: `1a_kite_${i}`,
+            nodes: [ { position: p1as[Math.floor(i/2)] }, { position: p0 } ]
+        })),
+
+        { name: `3c_2c`, nodes: [ { position: p3c }, { position: p2c } ]},
+
+        ...p1cs.map((p1, i) => ({
+            name: `2c_1c_${i}`,
+            nodes: [ { position: p2c }, { position: p1 } ]
+        })),
+
+        ...cLineAttachmentPoints3d.map((p0, i) => ({
+            name: `1c_kite_${i}`,
+            nodes: [ { position: p1cs[Math.floor(i/2)] }, { position: p0 } ]
+        })),
     ];
 
 
@@ -231,11 +254,14 @@ export function solveBridle(wing, bridle) {
 
 
 export function printBridle(bridle) {
-    return bridle.links.map(({ name, nodes }) => {
+    const lengths = bridle.links.map(({ name, nodes }) => {
         let rel = new THREE.Vector3().subVectors(nodes[0].position, nodes[1].position);
         let l = rel.length();
-        return `${name}: ${Math.round(l*100).toFixed()}`;
-    }).join('\n');
+        return { name, length: l };
+    });
+
+    return lengths.map(({ name, length }) => `${name}: ${Math.round(length*100).toFixed()}`).join('\n') +
+        `\ntotalLength: ${Math.round(lengths.reduce((acc, { length }) => (acc + length*100), 0)).toFixed()}`;
 }
 /*
    ----------------------

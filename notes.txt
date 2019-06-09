@@ -1,4 +1,30 @@
 
+/*
+ ----------------------
+ . ---------------------  0-nodes, fixed on kite
+  \   /  ---------------  0-lines, fixed length
+   \ /
+    .   ----------------  1-nodes
+    \     --------------  1-lines
+     \|/
+      .  ---------------  2-nodes
+      \  \  --------------  2-lines, one for a, b, c (per side)
+       \  \
+        \  \  \
+         \  .  \  -----------  3b-node, end of be b-bridle, pulley
+          \ |\  \  ----------  2 pulley lines a and c
+           \|  \ \
+            .    . ---------  3a, 3c-nodes - 2a-line to a-pulley line. 2c-line to c-pulley iine
+            \     \
+             \     \  ------  brake line to 4c-node, primary line to 4a-node, fixed length
+              \     \
+               .-----.       bar-nodes, fixed
+
+ */
+
+
+
+
 
 bridle calculation
 

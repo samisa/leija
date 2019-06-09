@@ -1,9 +1,7 @@
 import React from 'react';
 import _ from 'lodash';
 import * as THREE from 'three';
-
-import Foo from 'three-orbit-controls';
-let OrbitControls = Foo(THREE);
+import { OrbitControls } from '../OrbitControls';
 
 class Scene extends React.Component {
     constructor(props) {
@@ -31,12 +29,9 @@ class Scene extends React.Component {
         renderer.setSize( window.innerWidth, window.innerHeight );
         camera.up.set(0, 0, 1);
         camera.position.x = -5;
-        controls = new OrbitControls(camera, renderer.domElement);
-        //controls.addEventListener( 'change', render ); // add this only if there is no animation loop (requestAnimationFrame)
-        controls.enableDamping = true;
-        controls.dampingFactor = .9;
-        controls.enableZoom = true;
-        // lights
+        this.controls.saveState(); // so that it can be rocevered with reset
+
+        //lights
         let light = new THREE.DirectionalLight( 0xffffff );
         light.position.set( 1, 1, 1 );
         scene.add( light );
@@ -75,7 +70,10 @@ class Scene extends React.Component {
 
     render() {
         return (
-            <div ref="container" className='threeCanvasContainer'/>
+            <div>
+                <button onClick={ () => this.controls.reset() }>{ "reset view" } </button>
+                <div ref="container" className='threeCanvasContainer'/>
+            </div>
         );
     }
 }
