@@ -7,6 +7,8 @@ var store;
 
 let root = (state = {}, action) => {
     switch(action.type) {
+    case 'SET_MODE':
+        return Object.assign({}, state, { mode: action.mode });
     case 'SET_WING_PARAMS':
         return Object.assign({}, state, { wing: action.wing });
     case 'SET_BRIDLE_PARAMS':

@@ -25,7 +25,12 @@ export default class Input extends React.Component {
                 return <input type="text"
                               value={ value }
                               onChange={ (evt) => handleOnChange(evt.target.value) }
-                    />;
+                />;
+            case 'number':
+                return <input type="number"
+                              value={ value }
+                              onChange={ (evt) => handleOnChange(parseFloat(evt.target.value)) }
+                />;
             case 'boolean':
                 return <input type="checkbox"
                               checked={ value }

@@ -159,73 +159,33 @@ function project(wing) {
 }
 
 
-export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01, left: 0.01, le: 0.01, te: 0.02, profile: 0.01 } }) {
-    let addSeamAllowances = (sheet) => {
-        let seams = _.mapValues(sheet.outline, (edge, edgeName) => {
-            let seam = [];
-            for (let i = 0; i < edge.length; i++) {
-                let p1 = edge[i];
-                let p2 = edge[i+1 === edge.length ? i - 1 : i + 1];
-                let p1Top2Rel = p2.clone().sub(p1);
-                let normal1 = edgeName !== 'profile' ? vec2().set(p1Top2Rel.y, -p1Top2Rel.x).normalize(): vec2().set(-p1Top2Rel.y, p1Top2Rel.x).normalize(); //quick fix... profile outlines run in opposite direction.
-                seam.push(p1.clone().add(normal1.multiplyScalar(config.seamAllowance[edgeName])));
+export let fillOutline = (sheet, maxDist) => {
+    let filledOutline = _.mapValues(sheet.outline, (edge) => {  //outine contains profile and profile 2d
+        let filled = [];
+        for (let i = 0; i < edge.length-1; i++) {
+            let p1 = edge[i];
+            let p2 = edge[i + 1];
+            filled.push(p1);
+            let next = p1;
+            let p1Top2Unit = p2.clone().sub(p1).normalize();
+            while (next.distanceToSquared(p2) > maxDist * maxDist) {
+                next = next.clone().add(p1Top2Unit.clone().multiplyScalar(0.9 * maxDist));
+                filled.push(next);
             }
-            return seam;
-        });
-        return Object.assign({}, sheet, { seams });
-    };
+        }
+        return filled;
+    });
 
-    // fill gaps between points
-    let fillOutline = (sheet, maxDist) => {
-        let filledOutline = _.mapValues(sheet.outline, (edge) => {  //outine contains profile and profile 2d
-            let filled = [];
-            for (let i = 0; i < edge.length-1; i++) {
-                let p1 = edge[i];
-                let p2 = edge[i + 1];
-                filled.push(p1);
-                let next = p1;
-                let p1Top2Unit = p2.clone().sub(p1).normalize();
-                while (next.distanceToSquared(p2) > maxDist * maxDist) {
-                    next = next.clone().add(p1Top2Unit.clone().multiplyScalar(0.9 * maxDist));
-                    filled.push(next);
-                }
-            }
-            return filled;
-        });
+    return Object.assign({}, sheet, { outline: filledOutline });
+};
 
-        return Object.assign({}, sheet, { outline: filledOutline });
-    };
+export const lineFunction = d3.line()
+    .x(function(d) { return d.x; })
+    .y(function(d) { return d.y; });
 
-    const lineFunction = d3.line()
-        .x(function(d) { return d.x; })
-        .y(function(d) { return d.y; });
-
-    const createBoundingSVGContainer = (svg, objects) => {
-        let minx, miny, maxx, maxy;
-        let margin = 0.02; //2cm
-
-        [].concat(...objects).map((point) => {
-            minx = minx === undefined ? point.x : minx < point.x ? minx : point.x;
-            miny = miny === undefined ? point.y : miny < point.y ? miny : point.y;
-            maxx = maxx === undefined ? point.x : maxx > point.x ? maxx : point.x;
-            maxy = maxy === undefined ? point.y : maxy > point.y ? maxy : point.y;
-        });
-
-        minx = minx - margin;
-        miny = miny - margin;
-        const width = maxx - minx + margin;
-        const height = maxy - miny + margin;
-
-        return d3.select(svg)
-                .attr("width", width * 1000 + "mm")
-                .attr("height", height * 1000 + "mm")
-            .attr("viewBox", [minx, miny, width, height].join(' '));
-
-    };
-
-    const outlineAndSeam = (svg, sheet) => {
-        let { outline, seams } = addSeamAllowances(fillOutline(sheet, 0.005));
-        const svgContainer = createBoundingSVGContainer(svg, _.values(outline).concat(_.values(seams)));
+export const outlineAndSeam = (svg, sheet) => {
+    let { outline, seams } = addSeamAllowances(fillOutline(sheet, 0.005));
+    const svgContainer = createBoundingSVGContainer(svg, _.values(outline).concat(_.values(seams)));
 
         _.each(outline, (edge) => {
             svgContainer.append("path")
@@ -246,18 +206,58 @@ export function planSVGS({ wing, bridle }, config={ seamAllowance: { right: 0.01
         });
 
         return svgContainer;
-    };
+};
 
-    const addSheetLabel = (label, svgContainer, x, y) => {
-        svgContainer.append("text")
-            .attr('x', x)
-            .attr('y', y)
-            .text(label)
-            .attr("font-family", "sans-serif")
-            .attr("font-size", "0.02")
-            .attr("fill", "red");
-    };
+export const addSheetLabel = (label, svgContainer, x, y) => {
+    svgContainer.append("text")
+        .attr('x', x)
+        .attr('y', y)
+        .text(label)
+        .attr("font-family", "sans-serif")
+        .attr("font-size", "0.02")
+        .attr("fill", "red");
+};
 
+const createBoundingSVGContainer = (svg, objects) => {
+    let minx, miny, maxx, maxy;
+    let margin = 0.02; //2cm
+
+    [].concat(...objects).map((point) => {
+        minx = minx === undefined ? point.x : minx < point.x ? minx : point.x;
+        miny = miny === undefined ? point.y : miny < point.y ? miny : point.y;
+        maxx = maxx === undefined ? point.x : maxx > point.x ? maxx : point.x;
+        maxy = maxy === undefined ? point.y : maxy > point.y ? maxy : point.y;
+    });
+
+    minx = minx - margin;
+    miny = miny - margin;
+    const width = maxx - minx + margin;
+    const height = maxy - miny + margin;
+
+    return d3.select(svg)
+        .attr("width", width * 1000 + "mm")
+        .attr("height", height * 1000 + "mm")
+        .attr("viewBox", [minx, miny, width, height].join(' '));
+};
+
+const addSeamAllowances = (sheet, config={ seamAllowance: { right: 0.01, left: 0.01, le: 0.01, te: 0.02, profile: 0.01 } }) => {
+    let seams = _.mapValues(sheet.outline, (edge, edgeName) => {
+        let seam = [];
+        for (let i = 0; i < edge.length; i++) {
+            let p1 = edge[i];
+            let p2 = edge[i+1 === edge.length ? i - 1 : i + 1];
+            let p1Top2Rel = p2.clone().sub(p1);
+            let normal1 = edgeName !== 'profile' ? vec2().set(p1Top2Rel.y, -p1Top2Rel.x).normalize(): vec2().set(-p1Top2Rel.y, p1Top2Rel.x).normalize(); //quick fix... profile outlines run in opposite direction.
+            seam.push(p1.clone().add(normal1.multiplyScalar(config.seamAllowance[edgeName])));
+        }
+        return seam;
+    });
+    return Object.assign({}, sheet, { seams });
+};
+
+export function planSVGS({ wing, bridle }, config) {
+
+    // fill gaps between points
     const topPanelSVG = (sheet, index) => {
         const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         const svgContainer = outlineAndSeam(svg, sheet);

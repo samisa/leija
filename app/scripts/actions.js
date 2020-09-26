@@ -11,6 +11,7 @@ import { saveFile, exportXFLR5 } from './parser';
 
 const saveKite = state.actionCreator(() => {
     return function(dispatch, getState) {
+        const mode = getState().mode;
         const wing = getState().wing;
         const bridle = getState().bridle;
         const name = getState().name;
@@ -21,7 +22,9 @@ const saveKite = state.actionCreator(() => {
             return;
         }
 
-        saveFile(path, JSON.stringify({ wing, bridle, name }));
+        mode === 'ram' ?
+            saveFile(path, JSON.stringify({ wing, bridle, name, mode })) :
+            saveFile(path, JSON.stringify({ wing, name, mode }));
     };
 });
 
@@ -46,7 +49,9 @@ var openKite = state.actionCreator(() => {
         let file = dialog.showOpenDialog();
         if (!file) { return; }
         file = file[0];
-        const { wing, bridle, name } = parser.loadJson(file);
+        const { wing, bridle, name, mode='ram' } = parser.loadJson(file);
+
+        dispatch({ type: 'SET_MODE', mode });
         dispatch({ type: 'SET_BRIDLE_PARAMS', bridle: bridle || bridles.DEFAULT_BRIDLE });
         dispatch({ type: 'SET_WING_PARAMS', wing });
         dispatch({ type: 'SET_KITE_NAME', name }); //TODO...

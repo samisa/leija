@@ -27,8 +27,8 @@ class Scene extends React.Component {
         renderer.setClearColor( scene.fog.color );
         renderer.setPixelRatio( window.devicePixelRatio );
         renderer.setSize( window.innerWidth, window.innerHeight );
-        camera.up.set(0, 0, 1);
-        camera.position.x = -5;
+        camera.up.set(0, 1, 0);
+        camera.position.z = -5;
         this.controls.saveState(); // so that it can be rocevered with reset
 
         //lights
