@@ -13,7 +13,7 @@
     "redux": "3.6.0",
     "redux-thunk": "2.1.0",
     "reselect": "2.5.4",
-    "three": "0.104.0"
+    "three": "0.137.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.1.5",
