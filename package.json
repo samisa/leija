@@ -5,7 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "d3": "4.3.0",
-    "electron": "5.0.1",
+    "electron": "15.5.5",
     "react": "16.4.1",
     "react-dom": "16.4.1",
     "react-redux": "5.0.7",
